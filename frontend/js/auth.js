@@ -88,6 +88,7 @@ function renderTopbar(activeLink) {
   if (isAdmin()) {
     links += '<a class="navlink" data-link="usuarios" href="/usuarios">Usuários</a>';
   }
+  links += '<a class="navlink" data-glo-abrir href="#">Glossário</a>';
 
   if (document.getElementById('navlinks-js')) {
     document.getElementById('navlinks-js').innerHTML = links;
