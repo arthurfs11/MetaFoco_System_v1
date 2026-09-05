@@ -60,3 +60,5 @@ Thumbs.db
 *.sql
 *.backup
 /tmp/
+# Conexao SSH/credenciais local
+connect.txt
