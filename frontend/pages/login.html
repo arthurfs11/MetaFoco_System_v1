@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MetaFoco — Login</title>
+<link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-box">
+        <img src="/assets/logo_cliente.png" alt="Logo" onerror="this.style.display='none'">
+      </div>
+      <div>
+        <div class="login-title">MetaFoco</div>
+        <div class="login-sub">Sistema de Gestão de Endividamento</div>
+      </div>
+    </div>
+    <h1>Acessar sistema</h1>
+    <p class="login-desc">Informe suas credenciais para entrar.</p>
+    <form class="login-form" id="login-form">
+      <div>
+        <label for="email">E-mail / Usuário</label>
+        <input type="text" id="email" autocomplete="username" required />
+      </div>
+      <div>
+        <label for="password">Senha</label>
+        <input type="password" id="password" autocomplete="current-password" required />
+      </div>
+      <div class="login-error" id="login-error"></div>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
+    <div class="login-foot">© <span id="ano"></span> Arthur Faria · MetaFoco Systems</div>
+  </div>
+</div>
+
+<script src="/js/auth.js"></script>
+<script>
+document.getElementById('ano').textContent = new Date().getFullYear();
+if (getToken()) window.location.href = '/dashboard';
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  if (!email || !password) { errEl.textContent = 'Preencha e-mail e senha'; return; }
+
+  try {
+    const body = new URLSearchParams();
+    body.append('username', email);
+    body.append('password', password);
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.detail || 'Falha no login');
+    }
+    const data = await res.json();
+    setAuth(data.access_token, data.user);
+    window.location.href = '/dashboard';
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MetaFoco — Upload de Arquivos</title>
+<link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">
+      <img src="/assets/logo_cliente.png" alt="Logo" onerror="this.style.display='none'">
+    </div>
+    <div class="brand-text">
+      <div class="brand-title">MetaFoco</div>
+      <div class="brand-sub">Importação de Dados</div>
+    </div>
+  </div>
+  <nav class="navlinks" id="navlinks-js"></nav>
+  <div class="topbar-right">
+    <span class="status-dot live"></span>
+    <span class="status-text">Live</span>
+    <div class="user-chip" id="user-chip-js"></div>
+    <div class="user-menu" id="user-menu-js"></div>
+  </div>
+</header>
+
+<main class="main-wrap" style="max-width:900px">
+  <h1 style="font-size:20px;font-weight:700">Importar arquivo Excel</h1>
+  <p class="muted" style="font-size:13px;margin-top:4px;margin-bottom:20px">
+    Faça upload da planilha de endividamento (.xlsx ou .xlsm). O sistema identificará apenas os registros <strong>novos</strong>.
+    Contratos já existentes não serão duplicados.
+  </p>
+
+  <div class="panel" style="margin-bottom:16px">
+    <div class="dropzone" id="dropzone">
+      <div class="dz-icon">📄</div>
+      <div class="dz-title">Arraste e solte o arquivo aqui</div>
+      <div class="dz-sub">ou clique para selecionar · suporta .xlsx e .xlsm</div>
+      <input type="file" id="file-input" accept=".xlsx,.xlsm,.xls" />
+    </div>
+  </div>
+
+  <div id="resultado" style="display:none;margin-bottom:16px">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Resultado da importação</div>
+        <div class="panel-actions"><span class="muted" id="result-file">—</span></div>
+      </div>
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0">
+        <div class="stat-card">
+          <div class="stat-label">Registros no arquivo</div>
+          <div class="stat-value" id="result-total">—</div>
+        </div>
+        <div class="stat-card" style="border-top:3px solid var(--green)">
+          <div class="stat-label">Novos inseridos</div>
+          <div class="stat-value" style="color:var(--green)" id="result-novos">—</div>
+        </div>
+        <div class="stat-card" style="border-top:3px solid var(--orange)">
+          <div class="stat-label">Duplicados ignorados</div>
+          <div class="stat-value" style="color:var(--orange)" id="result-duplicados">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Histórico de importações</div>
+      <div class="panel-actions"><span class="muted">via banco de dados</span></div>
+    </div>
+    <p class="muted" style="font-size:12.5px">
+      Sempre que um arquivo é enviado, o sistema registra os contratos novos. Não há duplicação por contrato + instituição + parcela + data base.
+    </p>
+  </div>
+</main>
+
+<script src="/js/auth.js"></script>
+<script>
+const dz = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+
+function handleFiles(file) {
+  if (!file) return;
+  if (!['xlsx','xlsm','xls'].some(ext => file.name.toLowerCase().endsWith('.' + ext))) {
+    toast('Formato inválido. Envie um arquivo .xlsx, .xlsm ou .xls', 'error');
+    return;
+  }
+  uploadFile(file);
+}
+
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  dz.querySelector('.dz-sub').textContent = 'Enviando ' + file.name + '…';
+  dz.style.pointerEvents = 'none';
+  dz.style.opacity = '.6';
+  try {
+    const token = getToken();
+    const res = await fetch('/api/upload/excel', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Erro no upload');
+    showResult(file.name, data);
+    toast('Importação concluída: ' + data.novos + ' novos contratos', 'success');
+  } catch (e) {
+    toast(e.message, 'error');
+  } finally {
+    dz.style.pointerEvents = '';
+    dz.style.opacity = '';
+    dz.querySelector('.dz-sub').textContent = 'ou clique para selecionar · suporta .xlsx e .xlsm';
+    fileInput.value = '';
+  }
+}
+
+function showResult(filename, data) {
+  document.getElementById('resultado').style.display = 'block';
+  document.getElementById('result-file').textContent = filename;
+  document.getElementById('result-total').textContent = data.total_arquivo;
+  document.getElementById('result-novos').textContent = data.novos;
+  document.getElementById('result-duplicados').textContent = data.duplicados;
+}
+
+dz.addEventListener('click', () => fileInput.click());
+dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dz.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => handleFiles(fileInput.files[0]));
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!getToken()) { window.location.href = '/login'; return; }
+  renderTopbar('upload');
+  if (!isGestor()) {
+    toast('Acesso permitido apenas para gestores', 'error');
+    window.location.href = '/dashboard';
+    return;
+  }
+});
+</script>
+
+</body>
+</html>

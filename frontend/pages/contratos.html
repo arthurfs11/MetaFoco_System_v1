@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MetaFoco — Contratos</title>
+<link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">
+      <img src="/assets/logo_cliente.png" alt="Logo" onerror="this.style.display='none'">
+    </div>
+    <div class="brand-text">
+      <div class="brand-title">MetaFoco</div>
+      <div class="brand-sub">Cadastro de Contratos</div>
+    </div>
+  </div>
+  <nav class="navlinks" id="navlinks-js"></nav>
+  <div class="topbar-right">
+    <span class="status-dot live"></span>
+    <span class="status-text">Live</span>
+    <div class="user-chip" id="user-chip-js"></div>
+    <div class="user-menu" id="user-menu-js"></div>
+  </div>
+</header>
+
+<section class="filters">
+  <div class="filter-group">
+    <label>Buscar</label>
+    <input type="text" id="f-search" placeholder="Contrato, instituição, modalidade…" />
+  </div>
+  <button class="btn-clear" id="btn-clear" title="Limpar busca">Limpar</button>
+  <button class="btn btn-success" id="btn-novo" style="margin-left:auto">+ Cadastrar contrato</button>
+</section>
+
+<main class="main-wrap">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Contratos cadastrados</div>
+      <div class="panel-actions">
+        <span class="dot-motor" data-st="OK" title="OK"></span><span class="muted" style="margin-right:10px">Motor OK</span>
+        <span class="dot-motor" data-st="PARCIAL" title="PARCIAL"></span><span class="muted" style="margin-right:10px">Parcial</span>
+        <span class="dot-motor" data-st="FORA_PADRAO" title="FORA_PADRAO"></span><span class="muted" style="margin-right:10px">Fora padrão</span>
+        <span class="dot-motor" data-st="SEM" title="sem motor"></span><span class="muted" style="margin-right:10px">Sem motor</span>
+        <span class="muted" id="tbl-count">—</span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="dt" id="tbl-contratos">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Instituição</th>
+            <th>Empresa</th>
+            <th>Modalidade</th>
+            <th>Contrato</th>
+            <th>Parc.</th>
+            <th class="num">Contratado</th>
+            <th class="num">Total a pagar</th>
+            <th>Data base</th>
+            <th>Fonte</th>
+            <th style="text-align:right">Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal cadastro -->
+<div class="modal-overlay" id="modal-contrato">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Cadastrar contrato</div>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Instituição *</label>
+          <input type="text" id="c-instituicao" list="list-instituicoes" placeholder="Ex: BRASIL, SANTANDER…" />
+          <datalist id="list-instituicoes"></datalist>
+        </div>
+        <div class="form-field">
+          <label>Empresa</label>
+          <input type="text" id="c-empresa" list="list-empresas" />
+          <datalist id="list-empresas"></datalist>
+        </div>
+        <div class="form-field">
+          <label>Modalidade</label>
+          <input type="text" id="c-modalidade" list="list-modalidades" />
+          <datalist id="list-modalidades"></datalist>
+        </div>
+        <div class="form-field">
+          <label>Número do contrato *</label>
+          <input type="text" id="c-numero" required />
+        </div>
+        <div class="form-field">
+          <label>Parcela</label>
+          <input type="number" id="c-parcela" />
+        </div>
+        <div class="form-field">
+          <label>Período</label>
+          <select id="c-periodo">
+            <option value="">Selecione</option>
+            <option>ANUAL</option>
+            <option>MENSAL</option>
+            <option>FINAL</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>PGTO</label>
+          <select id="c-pgto">
+            <option value="">Selecione</option>
+            <option value="P">P</option>
+            <option value="F">F</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Data base</label>
+          <input type="date" id="c-datbase" />
+        </div>
+        <div class="form-field">
+          <label>Emissão</label>
+          <input type="date" id="c-emissao" />
+        </div>
+        <div class="form-field">
+          <label>Início</label>
+          <input type="date" id="c-inicial" />
+        </div>
+        <div class="form-field">
+          <label>Vencimento final</label>
+          <input type="date" id="c-final" />
+        </div>
+        <div class="form-field">
+          <label>Contratado (R$)</label>
+          <input type="number" id="c-contratado" step="0.01" />
+        </div>
+        <div class="form-field">
+          <label>Curto prazo (R$)</label>
+          <input type="number" id="c-curto" step="0.01" />
+        </div>
+        <div class="form-field">
+          <label>Longo prazo (R$)</label>
+          <input type="number" id="c-longo" step="0.01" />
+        </div>
+        <div class="form-field">
+          <label>Total a pagar (R$)</label>
+          <input type="number" id="c-total-pg" step="0.01" />
+        </div>
+        <div class="form-field">
+          <label>% restante</label>
+          <input type="number" id="c-perc-rest" step="0.000001" />
+        </div>
+        <div class="form-field">
+          <label>Parcelas pagas</label>
+          <input type="number" id="c-parc-pg" />
+        </div>
+        <div class="form-field">
+          <label>Prestação (R$)</label>
+          <input type="number" id="c-prestacao" step="0.01" />
+        </div>
+        <div class="form-field">
+          <label>Juros (R$)</label>
+          <input type="number" id="c-juros" step="0.01" />
+        </div>
+        <div class="form-field">
+          <label>Índice</label>
+          <select id="c-indice">
+            <option value="">Selecione</option>
+            <option>PRÉ</option>
+            <option>CDI</option>
+            <option>TLP</option>
+            <option>USD</option>
+            <option>IPCA</option>
+            <option>SELIC</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Garantia (Modalidade 2)</label>
+          <input type="text" id="c-modalidade2" list="list-garantias" />
+          <datalist id="list-garantias"></datalist>
+        </div>
+        <div class="form-field">
+          <label>% Garantia</label>
+          <input type="number" id="c-perc-gar" step="0.01" />
+        </div>
+        <div class="form-field full">
+          <label>Observações (OBS. CET)</label>
+          <textarea id="c-obs"></textarea>
+        </div>
+        <div class="form-field full">
+          <label>Resumo das garantias</label>
+          <textarea id="c-garantias"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button class="btn btn-success" data-save>Salvar contrato</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/auth.js"></script>
+<script>
+let allContratos = [];
+let editId = null;
+
+async function loadContratos() {
+  try {
+    allContratos = await apiRequest('/contratos');
+    renderTabela(allContratos);
+  } catch (e) {
+    toast(e.message, 'error');
+    if (!isGestor()) window.location.href = '/dashboard';
+  }
+}
+
+async function loadDatalists() {
+  try {
+    const data = await apiRequest('/dashboard/filtros');
+    fillDatalist('list-instituicoes', data.instituicoes);
+    fillDatalist('list-empresas', data.empresas);
+    fillDatalist('list-modalidades', data.modalidades);
+    fillDatalist('list-garantias', allContratos.map(c => c.modalidade2).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i));
+  } catch (e) {}
+}
+
+function fillDatalist(id, values) {
+  const dl = document.getElementById(id);
+  dl.innerHTML = values.map(v => `<option value="${v}"></option>`).join('');
+}
+
+function renderTabela(rows) {
+  document.getElementById('tbl-count').textContent = rows.length + ' contratos';
+  const tbody = document.querySelector('#tbl-contratos tbody');
+  const sorted = rows.slice().sort((a, b) => (b.total_pg || 0) - (a.total_pg || 0));
+  tbody.innerHTML = sorted.map((r, i) => `
+    <tr class="row-link" data-open="${r.id}">
+      <td>${i + 1}</td>
+      <td>${r.instituicao || '—'}</td>
+      <td>${r.empresa || '—'}</td>
+      <td>${r.modalidade || '—'}</td>
+      <td><a href="/contrato?id=${r.id}" class="link-cont">${r.numero_contrato || '—'}</a>${r.motor_status ? `<span class="dot-motor" title="Motor: ${r.motor_status}" data-st="${r.motor_status}"></span>` : `<span class="dot-motor" title="Sem motor de amortização" data-st="SEM"></span>`}</td>
+      <td>${r.parcela ?? '—'}</td>
+      <td class="num">${fmtMoney(r.contratado)}</td>
+      <td class="num">${fmtMoney(r.total_pg)}</td>
+      <td>${r.data_base ? new Date(r.data_base + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+      <td><span class="muted">${r.fonte || '—'}</span></td>
+      <td style="text-align:right">
+        <button class="btn-icon" title="Detalhes" data-open="${r.id}">👁</button>
+        <button class="btn-icon" title="Editar" data-edit="${r.id}">✎</button>
+        <button class="btn-icon danger" title="Excluir" data-del="${r.id}">🗑</button>
+      </td>
+    </tr>
+  `).join('');
+
+  tbody.addEventListener('click', (e) => {
+    const del = e.target.closest('[data-del]');
+    if (del) { e.preventDefault(); e.stopPropagation(); excluirContrato(del.getAttribute('data-del')); return; }
+    const edit = e.target.closest('[data-edit]');
+    if (edit) { e.preventDefault(); e.stopPropagation(); editContrato(edit.getAttribute('data-edit')); return; }
+    const open = e.target.closest('[data-open]');
+    if (open) window.location.href = '/contrato?id=' + open.getAttribute('data-open');
+  });
+}
+
+function editContrato(id) {
+  const c = allContratos.find(x => x.id === id);
+  if (!c) return;
+  editId = id;
+  document.getElementById('modal-title').textContent = 'Editar contrato ' + c.numero_contrato;
+  document.getElementById('c-instituicao').value = c.instituicao || '';
+  document.getElementById('c-empresa').value = c.empresa || '';
+  document.getElementById('c-modalidade').value = c.modalidade || '';
+  document.getElementById('c-numero').value = c.numero_contrato || '';
+  document.getElementById('c-parcela').value = c.parcela ?? '';
+  document.getElementById('c-periodo').value = c.periodo || '';
+  document.getElementById('c-pgto').value = c.pgto || '';
+  document.getElementById('c-datbase').value = c.data_base || '';
+  document.getElementById('c-emissao').value = c.emissao || '';
+  document.getElementById('c-inicial').value = c.inicial || '';
+  document.getElementById('c-final').value = c.final || '';
+  document.getElementById('c-contratado').value = c.contratado ?? '';
+  document.getElementById('c-curto').value = c.curto_prazo ?? '';
+  document.getElementById('c-longo').value = c.longo_prazo ?? '';
+  document.getElementById('c-total-pg').value = c.total_pg ?? '';
+  document.getElementById('c-perc-rest').value = c.perc_rest ?? '';
+  document.getElementById('c-parc-pg').value = c.parc_pg ?? '';
+  document.getElementById('c-prestacao').value = c.prestacao ?? '';
+  document.getElementById('c-juros').value = c.juros ?? '';
+  document.getElementById('c-indice').value = c.indice || '';
+  document.getElementById('c-modalidade2').value = c.modalidade2 || '';
+  document.getElementById('c-perc-gar').value = c.perc_gar ?? '';
+  document.getElementById('c-obs').value = c.obs_cet || '';
+  document.getElementById('c-garantias').value = c.resumo_garantias || '';
+  document.getElementById('modal-contrato').classList.add('show');
+}
+
+function limparForm() {
+  editId = null;
+  document.getElementById('modal-title').textContent = 'Cadastrar contrato';
+  ['c-instituicao','c-empresa','c-modalidade','c-numero','c-parcela','c-periodo','c-pgto','c-datbase','c-emissao','c-inicial','c-final','c-contratado','c-curto','c-longo','c-total-pg','c-perc-rest','c-parc-pg','c-prestacao','c-juros','c-indice','c-modalidade2','c-perc-gar','c-obs','c-garantias'].forEach(id => document.getElementById(id).value = '');
+}
+
+function coletarForm() {
+  const num = (v) => v === '' ? null : Number(v);
+  return {
+    instituicao: document.getElementById('c-instituicao').value.trim(),
+    empresa: document.getElementById('c-empresa').value.trim() || null,
+    modalidade: document.getElementById('c-modalidade').value.trim() || null,
+    numero_contrato: document.getElementById('c-numero').value.trim(),
+    parcela: num(document.getElementById('c-parcela').value),
+    periodo: document.getElementById('c-periodo').value || null,
+    pgto: document.getElementById('c-pgto').value || null,
+    data_base: document.getElementById('c-datbase').value || null,
+    emissao: document.getElementById('c-emissao').value || null,
+    inicial: document.getElementById('c-inicial').value || null,
+    final: document.getElementById('c-final').value || null,
+    contratado: num(document.getElementById('c-contratado').value),
+    curto_prazo: num(document.getElementById('c-curto').value),
+    longo_prazo: num(document.getElementById('c-longo').value),
+    total_pg: num(document.getElementById('c-total-pg').value),
+    perc_rest: num(document.getElementById('c-perc-rest').value),
+    parc_pg: num(document.getElementById('c-parc-pg').value),
+    prestacao: num(document.getElementById('c-prestacao').value),
+    juros: num(document.getElementById('c-juros').value),
+    indice: document.getElementById('c-indice').value || null,
+    modalidade2: document.getElementById('c-modalidade2').value.trim() || null,
+    perc_gar: num(document.getElementById('c-perc-gar').value),
+    obs_cet: document.getElementById('c-obs').value.trim() || null,
+    resumo_garantias: document.getElementById('c-garantias').value.trim() || null,
+  };
+}
+
+async function excluirContrato(id) {
+  if (!confirm('Excluir este contrato?')) return;
+  try {
+    await apiRequest('/contratos/' + id, { method: 'DELETE' });
+    toast('Contrato excluído', 'success');
+    loadContratos();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+document.getElementById('btn-novo').addEventListener('click', () => { limparForm(); document.getElementById('modal-contrato').classList.add('show'); });
+
+document.querySelector('#modal-contrato [data-save]').addEventListener('click', async () => {
+  const data = coletarForm();
+  if (!data.instituicao || !data.numero_contrato) { toast('Instituição e número do contrato são obrigatórios', 'warning'); return; }
+  try {
+    if (editId) {
+      await apiRequest('/contratos/' + editId, { method: 'PUT', body: JSON.stringify(data) });
+      toast('Contrato atualizado!', 'success');
+    } else {
+      await apiRequest('/contratos/', { method: 'POST', body: JSON.stringify(data) });
+      toast('Contrato cadastrado com sucesso!', 'success');
+    }
+    document.getElementById('modal-contrato').classList.remove('show');
+    loadContratos();
+  } catch (e) { toast(e.message, 'error'); }
+});
+
+document.querySelector('#modal-contrato').addEventListener('click', (e) => { if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('show'); });
+document.querySelectorAll('#modal-contrato [data-close]').forEach(b => b.addEventListener('click', () => document.getElementById('modal-contrato').classList.remove('show')));
+
+document.getElementById('btn-clear').addEventListener('click', () => { document.getElementById('f-search').value = ''; renderTabela(allContratos); });
+document.getElementById('f-search').addEventListener('input', () => {
+  const q = document.getElementById('f-search').value.trim().toLowerCase();
+  if (!q) { renderTabela(allContratos); return; }
+  const filtered = allContratos.filter(c =>
+    (c.instituicao || '').toLowerCase().includes(q) ||
+    (c.empresa || '').toLowerCase().includes(q) ||
+    (c.modalidade || '').toLowerCase().includes(q) ||
+    String(c.numero_contrato || '').toLowerCase().includes(q) ||
+    (c.indice || '').toLowerCase().includes(q)
+  );
+  renderTabela(filtered);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!getToken()) { window.location.href = '/login'; return; }
+  renderTopbar('contratos');
+  if (!isGestor()) {
+    toast('Acesso permitido apenas para gestores', 'error');
+    window.location.href = '/dashboard';
+    return;
+  }
+  loadContratos().then(loadDatalists);
+});
+</script>
+
+</body>
+</html>

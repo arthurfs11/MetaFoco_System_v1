@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MetaFoco — Detalhes do contrato</title>
+<link rel="stylesheet" href="/css/styles.css" />
+<style>
+  .backlink { display:inline-flex; align-items:center; gap:6px; color:var(--text-muted); text-decoration:none; font-size:13px; margin-right:16px; }
+  .backlink:hover { color:var(--text); }
+  .cd-header { display:flex; align-items:flex-start; gap:18px; flex-wrap:wrap; }
+  .cd-title { font-size:22px; font-weight:800; line-height:1.25; }
+  .cd-sub { font-size:12.5px; color:var(--text-muted); margin-top:3px; }
+  .cd-tags { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+  .tag { font-size:11.5px; padding:3px 10px; border-radius:20px; border:1px solid var(--border); color:var(--text-muted); background:rgba(255,255,255,.02); }
+  .tag strong { color:var(--text); font-weight:700; }
+  .bdg-OK,.bdg-PARCIAL,.bdg-FORA_PADRAO,.bdg-DADO_FALTANTE { font-size:11.5px; padding:3px 10px; border-radius:20px; border:1px solid; font-weight:700; }
+  .bdg-OK { color:#32d583; border-color:rgba(50,213,131,.35); background:rgba(50,213,131,.08); }
+  .bdg-PARCIAL { color:#ffb020; border-color:rgba(255,176,32,.35); background:rgba(255,176,32,.08); }
+  .bdg-FORA_PADRAO { color:#ff6b6b; border-color:rgba(255,107,107,.35); background:rgba(255,107,107,.08); }
+  .bdg-DADO_FALTANTE { color:var(--text-muted); border-color:var(--border); background:rgba(255,255,255,.03); }
+  .stat-grid-detail { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+  @media (max-width:1000px){ .stat-grid-detail { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .stat-grid-detail { grid-template-columns:1fr; } }
+  .stat-card .stat-value { font-size:20px; }
+  .stat-card.hl { border-color:rgba(118,164,255,.45); background:linear-gradient(180deg, rgba(118,164,255,.08), rgba(118,164,255,.02)); }
+  .stat-card.hl .stat-label { color:#8fb1ff; }
+  tr.row-now td { background:rgba(118,164,255,.10); }
+  .tipo-PARC { color:#4fd1ff; }
+  .tipo-EOM { color:var(--text-muted); }
+  .muted-2 { color:var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">
+      <img src="/assets/logo_cliente.png" alt="Logo" onerror="this.style.display='none'">
+    </div>
+    <div class="brand-text">
+      <div class="brand-title">MetaFoco</div>
+      <div class="brand-sub">Detalhes do contrato</div>
+    </div>
+  </div>
+  <nav class="navlinks" id="navlinks-js"></nav>
+  <div class="topbar-right">
+    <span class="status-dot live"></span>
+    <span class="status-text">Live</span>
+    <div class="user-chip" id="user-chip-js"></div>
+    <div class="user-menu" id="user-menu-js"></div>
+  </div>
+</header>
+
+<section class="filters">
+  <a class="backlink" id="back-link" href="/contratos">&larr; Voltar para contratos</a>
+  <div class="filter-group" style="margin-left:4px">
+    <label>Data base</label>
+    <input type="date" id="f-datbase" />
+  </div>
+  <button class="btn btn-success" id="btn-recalc" style="margin-left:10px">Recalcular</button>
+  <span class="muted" id="load-state" style="margin-left:auto"></span>
+</section>
+
+<main class="main-wrap">
+  <div id="err-box" style="display:none" class="panel"><div class="muted" id="err-msg"></div></div>
+
+  <div class="panel" id="panel-head" style="display:none">
+    <div class="cd-header">
+      <div>
+        <div class="cd-title" id="cd-num">—</div>
+        <div class="cd-sub" id="cd-sub">—</div>
+      </div>
+      <div class="cd-tags" id="cd-tags"></div>
+    </div>
+  </div>
+
+  <div class="stat-grid-detail" id="cards" style="display:none">
+    <div class="stat-card"><div class="stat-label">Valor financiado</div><div class="stat-value" id="cd-fin">—</div><div class="stat-foot" id="cd-fin-foot"></div></div>
+    <div class="stat-card hl"><div class="stat-label">Valor p/ liquidação hoje</div><div class="stat-value" id="cd-saldo">—</div><div class="stat-foot" id="cd-saldo-foot"></div></div>
+    <div class="stat-card"><div class="stat-label">Total a pagar (a vencer)</div><div class="stat-value" id="cd-total">—</div><div class="stat-foot" id="cd-total-foot"></div></div>
+    <div class="stat-card"><div class="stat-label">Encargos a incorrer</div><div class="stat-value" id="cd-encargos">—</div><div class="stat-foot" id="cd-encargos-foot"></div></div>
+    <div class="stat-card"><div class="stat-label">Curto prazo (≤ 12m)</div><div class="stat-value" id="cd-cp">—</div><div class="stat-foot" id="cd-cp-foot"></div></div>
+    <div class="stat-card"><div class="stat-label">Longo prazo (&gt; 12m)</div><div class="stat-value" id="cd-lp">—</div><div class="stat-foot" id="cd-lp-foot"></div></div>
+    <div class="stat-card"><div class="stat-label">Amortizado até hoje</div><div class="stat-value" id="cd-amort">—</div><div class="stat-foot" id="cd-amort-foot"></div></div>
+    <div class="stat-card"><div class="stat-label">Próxima prestação</div><div class="stat-value" id="cd-prox">—</div><div class="stat-foot" id="cd-prox-foot"></div></div>
+  </div>
+
+  <div class="panel" id="panel-extrato" style="display:none">
+    <div class="panel-header">
+      <div class="panel-title">Extrato de parcelas</div>
+      <div class="panel-actions"><span class="muted" id="tbl-count">—</span></div>
+    </div>
+    <div class="table-wrap">
+      <table class="dt" id="tbl-extrato">
+        <thead>
+          <tr>
+            <th>Data útil</th>
+            <th>Tipo</th>
+            <th>Parc.</th>
+            <th class="num">Juros</th>
+            <th class="num">Índice</th>
+            <th class="num">Prestação</th>
+            <th class="num">Amortização</th>
+            <th class="num">Saldo</th>
+            <th class="num">CP</th>
+            <th class="num">LP</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script src="/js/auth.js"></script>
+<script>
+let detalhe = null;
+const params = new URLSearchParams(location.search);
+const contratoId = params.get('id');
+
+async function loadDetalhe() {
+  if (!contratoId) { showErr('Contrato não informado. Volte e selecione um contrato.'); return; }
+  if (!getToken()) { window.location.href = '/login'; return; }
+
+  const db = document.getElementById('f-datbase').value || new Date().toISOString().slice(0,10);
+  const state = document.getElementById('load-state');
+  state.textContent = 'Carregando…';
+  try {
+    detalhe = await apiRequest(`/contratos/${contratoId}/detalhe?data_base=${db}`);
+    renderDetalhe();
+  } catch (e) {
+    showErr(e.message);
+  } finally {
+    state.textContent = '';
+  }
+}
+
+function showErr(msg) {
+  document.getElementById('err-box').style.display = '';
+  document.getElementById('err-msg').textContent = msg || 'Erro ao carregar contrato';
+  document.getElementById('panel-head').style.display = 'none';
+  document.getElementById('cards').style.display = 'none';
+  document.getElementById('panel-extrato').style.display = 'none';
+}
+
+function motorBadge(cp) {
+  if (!cp || !cp.status) return '';
+  return `<span class="bdg-${cp.status}" title="${(cp.status_detalhe || '').replace(/"/g, '&quot;')}">${cp.status}</span>`;
+}
+
+function renderDetalhe() {
+  const d = detalhe;
+  document.getElementById('err-box').style.display = 'none';
+  document.getElementById('panel-head').style.display = '';
+  document.getElementById('cards').style.display = '';
+  document.getElementById('panel-extrato').style.display = d.extrato ? '' : 'none';
+
+  // Cabeçalho
+  document.getElementById('cd-num').textContent = d.numero_contrato || '—';
+  const subP = [];
+  if (d.instituicao) subP.push(d.instituicao);
+  if (d.modalidade) subP.push(d.modalidade);
+  if (d.empresa) subP.push(d.empresa);
+  if (d.indice) subP.push('Índice: ' + d.indice);
+  if (d.parcela != null) subP.push('parcela ' + d.parcela);
+  subP.push('Fonte: ' + (d.fonte || '—'));
+  document.getElementById('cd-sub').textContent = subP.join(' · ') || '—';
+
+  const tags = [];
+  tags.push(motorBadge(d.motor));
+  if (d.motor) {
+    tags.push(`<span class="tag">Sistema <strong>${d.motor.sist_amort || '—'}</strong></span>`);
+    tags.push(`<span class="tag">Indexador <strong>${d.motor.indexador || '—'}</strong></span>`);
+    tags.push(`<span class="tag">Taxa <strong>${d.motor.taxa_aa != null ? (d.motor.taxa_aa * 100).toFixed(2) + '% aa' : '—'}</strong></span>`);
+    tags.push(`<span class="tag">Qt. parcelas <strong>${d.motor.qt_parc ?? '—'}</strong></span>`);
+    if (d.motor.vencimento_final) tags.push(`<span class="tag">Venc. final <strong>${new Date(d.motor.vencimento_final + 'T00:00:00').toLocaleDateString('pt-BR')}</strong></span>`);
+  } else {
+    tags.push(`<span class="tag">Sem dados do motor de amortização</span>`);
+  }
+  document.getElementById('cd-tags').innerHTML = tags.join('');
+
+  // Cards
+  const r = d.resumo || {};
+  setVal('cd-fin', r.financiado != null ? fmtMoney(r.financiado) : (d.contratado != null ? fmtMoney(d.contratado) : '—'), 'motor');
+  setVal('cd-saldo', r.saldo_hoje != null ? fmtMoney(r.saldo_hoje) : '—', r.origem === 'motor' ? `Saldo na data base abrangendo juros e índices` : 'Soma curto + longo prazo');
+  setVal('cd-total', r.total_a_pagar != null ? fmtMoney(r.total_a_pagar) : (d.total_pg != null ? fmtMoney(d.total_pg) : '—'), r.parc_restantes != null ? r.parc_restantes + ' prestações a vencer' : '');
+  setVal('cd-encargos', r.encargos_a_incorrer != null ? fmtMoney(r.encargos_a_incorrer) : (d.juros != null ? fmtMoney(d.juros) : '—'), r.amortizacao_a_incorrer != null ? 'Amortização a incorrer: ' + fmtMoney(r.amortizacao_a_incorrer) : '');
+  setVal('cd-cp', r.cp != null ? fmtMoney(r.cp) : (d.curto_prazo != null ? fmtMoney(d.curto_prazo) : '—'), '');
+  setVal('cd-lp', r.lp != null ? fmtMoney(r.lp) : (d.longo_prazo != null ? fmtMoney(d.longo_prazo) : '—'), '');
+  setVal('cd-amort', r.amortizado_ate != null ? fmtMoney(r.amortizado_ate) : '—', r.parc_pagas != null ? r.parc_pagas + ' prestações pagas' : '');
+  setVal('cd-prox', r.proxima_prest != null ? fmtMoney(r.proxima_prest) : (d.prestacao != null ? fmtMoney(d.prestacao) : '—'), r.proxima_data ? 'venc. ' + new Date(r.proxima_data + 'T00:00:00').toLocaleDateString('pt-BR') : '');
+
+  // Extrato
+  const hasExtrato = d.extrato && d.extrato.length > 0;
+  document.getElementById('panel-extrato').style.display = '';
+  const tbody = document.querySelector('#tbl-extrato tbody');
+  const dbDate = (d.resumo && d.resumo.data_base) || new Date().toISOString().slice(0,10);
+  if (hasExtrato) {
+    document.getElementById('tbl-count').textContent = d.extrato.length + ' linhas';
+    tbody.innerHTML = d.extrato.map(L => `
+      <tr class="${L.data_util === dbDate ? 'row-now' : ''}">
+        <td>${L.data_util ? new Date(L.data_util + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+        <td class="tipo-${L.tipo}">${L.tipo || '—'}</td>
+        <td>${L.parcela_n ? fmtNum(L.parcela_n, 0) : '—'}</td>
+        <td class="num">${fmtMoney(L.juros)}</td>
+        <td class="num">${fmtMoney(L.indice_periodo)}</td>
+        <td class="num">${fmtMoney(L.prestacao)}</td>
+        <td class="num">${fmtMoney(L.amortizacao)}</td>
+        <td class="num"><strong>${fmtMoney(L.saldo)}</strong></td>
+        <td class="num">${fmtMoney(L.cp)}</td>
+        <td class="num">${fmtMoney(L.lp)}</td>
+      </tr>`).join('');
+  } else {
+    document.getElementById('tbl-count').textContent = '';
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:22px;color:var(--text-muted)">
+      Sem extrato de parcelas para este contrato — ele não possui registro no motor de amortização
+      (ou o cálculo não está disponível na data base selecionada).
+    </td></tr>`;
+  }
+}
+
+function setVal(id, text, foot) {
+  document.getElementById(id).textContent = text;
+  const f = document.getElementById(id + '-foot');
+  if (f) f.textContent = foot || '';
+}
+
+document.getElementById('btn-recalc').addEventListener('click', loadDetalhe);
+document.getElementById('f-datbase').addEventListener('change', loadDetalhe);
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopbar(typeof isGestor === 'function' && isGestor() ? 'contratos' : '');
+  if (typeof isGestor === 'function' && !isGestor()) {
+    const b = document.getElementById('back-link');
+    if (b) b.setAttribute('href', '/dashboard');
+  }
+  loadDetalhe();
+});
+</script>
+
+</body>
+</html>

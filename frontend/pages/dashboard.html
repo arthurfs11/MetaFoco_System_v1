@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MetaFoco — Dashboard de Endividamento</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="/css/styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+<style>
+  .export-menu { position: relative; align-self: end; }
+  .btn-export {
+    list-style: none; cursor: pointer;
+    padding: 7px 14px;
+    background: linear-gradient(180deg, #1c2129, #161a21);
+    color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; font-size: 12px; font-weight: 600;
+    user-select: none; display: inline-flex;
+    align-items: center; gap: 6px;
+    transition: border-color .15s, transform .1s;
+    font-family: inherit;
+  }
+  .btn-export::-webkit-details-marker { display: none; }
+  .btn-export::marker { content: ''; }
+  .btn-export::after {
+    content: ''; width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 4px solid var(--text-dim); margin-left: 4px;
+    transition: transform .15s;
+  }
+  .btn-export:hover { border-color: var(--blue); }
+  .export-menu[open] .btn-export { border-color: var(--blue); }
+  .export-menu[open] .btn-export::after { transform: rotate(180deg); }
+  .export-options {
+    position: absolute; top: calc(100% + 6px); right: 0;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px; min-width: 220px;
+    box-shadow: 0 12px 28px rgba(0,0,0,.5); z-index: 30;
+  }
+  .export-options button {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; text-align: left; background: transparent;
+    color: var(--text); border: 0; padding: 9px 11px;
+    border-radius: 5px; font-size: 12.5px; cursor: pointer; font-family: inherit;
+  }
+  .export-options button small { color: var(--text-muted); font-size: 10.5px; font-weight: 400; margin-left: 12px; }
+  .export-options button:hover { background: var(--panel-hi); }
+  .export-options button:disabled { opacity: .55; cursor: progress; }
+  .export-options hr { border: 0; border-top: 1px solid var(--border-soft); margin: 4px 2px; }
+  .export-overlay {
+    position: fixed; inset: 0; background: rgba(11,14,20,.75);
+    backdrop-filter: blur(4px); display: none;
+    align-items: center; justify-content: center;
+    z-index: 9999; color: var(--text); font-size: 14px;
+  }
+  .export-overlay.show { display: flex; }
+  .export-overlay .spinner {
+    width: 18px; height: 18px; border: 2px solid var(--border);
+    border-top-color: var(--blue); border-radius: 50%;
+    animation: spin 0.7s linear infinite; margin-right: 10px;
+  }
+  .empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
+  .motor-panel .motor-counters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .motor-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border-radius: 999px;
+    font-size: 12px; font-weight: 700;
+    border: 1px solid var(--border); cursor: default;
+  }
+  .motor-badge .n { font-size: 13px; }
+  .bdg-OK { color: #32d583; border-color: rgba(50,213,131,.35); background: rgba(50,213,131,.08); }
+  .bdg-PARCIAL { color: #ffb020; border-color: rgba(255,176,32,.35); background: rgba(255,176,32,.08); }
+  .bdg-FORA_PADRAO { color: #ff6b6b; border-color: rgba(255,107,107,.35); background: rgba(255,107,107,.08); }
+  .bdg-DADO_FALTANTE { color: var(--text-muted); border-color: var(--border); background: rgba(255,255,255,.03); }
+  .motor-grid {
+    display: grid; gap: 6px; max-height: 340px; overflow: auto;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+  .motor-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 7px 10px; border: 1px solid var(--border-soft);
+    border-radius: 7px; background: var(--panel-hi);
+    font-size: 12px; cursor: help;
+  }
+  .motor-item .aba { font-family: var(--mono, monospace); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .motor-item .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">
+      <img src="/assets/logo_cliente.png" alt="Logo" onerror="this.style.display='none'">
+      <svg viewBox="0 0 24 24" width="22" height="22" style="display:none"><path fill="currentColor" d="M3 13h2v8H3zm4-4h2v12H7zm4-6h2v18h-2zm4 9h2v9h-2zm4-5h2v14h-2z"/></svg>
+    </div>
+    <div class="brand-text">
+      <div class="brand-title">MetaFoco</div>
+      <div class="brand-sub">Dashboard de Endividamento · Grupo</div>
+    </div>
+  </div>
+  <nav class="navlinks" id="navlinks-js"></nav>
+  <div class="topbar-right">
+    <span class="status-dot live" title="Dados ao vivo"></span>
+    <span class="status-text">Live</span>
+    <button id="btn-refresh" class="btn-refresh" title="Atualizar dados" aria-label="Atualizar">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>
+      </svg>
+    </button>
+    <span class="topbar-divider"></span>
+    <span class="topbar-meta" id="last-refresh">—</span>
+    <div class="user-chip" id="user-chip-js"></div>
+    <div class="user-menu" id="user-menu-js"></div>
+  </div>
+</header>
+
+<section class="filters">
+  <div class="filter-group">
+    <label>Data Base</label>
+    <select id="f-datbase"><option value="">Todas</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Instituição</label>
+    <select id="f-instituicao"><option value="">Todas</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Empresa</label>
+    <select id="f-empresa"><option value="">Todas</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Modalidade</label>
+    <select id="f-modalidade"><option value="">Todas</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Índice</label>
+    <select id="f-indice"><option value="">Todos</option></select>
+  </div>
+  <button class="btn-clear" id="btn-clear" title="Limpar filtros">Limpar</button>
+  <details class="export-menu" id="export-menu">
+    <summary class="btn-export" title="Exportar dashboard">Exportar</summary>
+    <div class="export-options">
+      <button type="button" data-export="pdf">PDF do dashboard <small>A4 paisagem</small></button>
+      <button type="button" data-export="png">Imagem PNG <small>alta resolução</small></button>
+      <hr />
+      <button type="button" data-export="csv">Dados filtrados <small>.csv</small></button>
+    </div>
+  </details>
+  <div class="filter-summary" id="filter-summary">—</div>
+</section>
+
+<main class="main-wrap">
+  <div class="grid">
+
+    <!-- KPI row -->
+    <div class="panel kpi span-3">
+      <div class="kpi-label">Total contratado</div>
+      <div class="kpi-value" id="kpi-contratado">—</div>
+      <div class="kpi-foot"><span class="muted" id="kpi-contratado-count">0 contratos</span></div>
+    </div>
+    <div class="panel kpi span-3">
+      <div class="kpi-label">Curto prazo</div>
+      <div class="kpi-value" id="kpi-curto">—</div>
+      <div class="kpi-foot"><span class="muted">até 12 meses</span></div>
+    </div>
+    <div class="panel kpi span-3">
+      <div class="kpi-label">Longo prazo</div>
+      <div class="kpi-value" id="kpi-longo">—</div>
+      <div class="kpi-foot"><span class="muted">acima de 12 meses</span></div>
+    </div>
+    <div class="panel kpi span-3">
+      <div class="kpi-label">Total a pagar</div>
+      <div class="kpi-value" id="kpi-total-pg">—</div>
+      <div class="kpi-foot"><span class="muted">saldo devedor atualizado</span></div>
+    </div>
+
+    <!-- Motor de amortização — fidelidade -->
+    <div class="panel span-12 motor-panel">
+      <div class="panel-header">
+        <div class="panel-title">Motor de amortização · fidelidade da reprodução</div>
+        <div class="panel-actions"><span class="muted" id="motor-n-total">—</span></div>
+      </div>
+      <div class="motor-counters" id="motor-counters"></div>
+      <div class="motor-grid" id="motor-grid"></div>
+    </div>
+
+    <!-- Instituições + Modalidades -->
+    <div class="panel span-8">
+      <div class="panel-header">
+        <div class="panel-title">Exposição por instituição</div>
+        <div class="panel-actions"><span class="muted">saldo a pagar</span></div>
+      </div>
+      <div id="chart-instituicoes" class="chart" style="height:320px"></div>
+    </div>
+
+    <div class="panel span-4">
+      <div class="panel-header">
+        <div class="panel-title">Total por modalidade</div>
+        <div class="panel-actions"><span class="muted">contratado</span></div>
+      </div>
+      <div id="chart-modalidades" class="chart" style="height:320px"></div>
+    </div>
+
+    <!-- Curto vs Longo + Empresa -->
+    <div class="panel span-6">
+      <div class="panel-header">
+        <div class="panel-title">Prazo — Curto vs Longo</div>
+        <div class="panel-actions"><span class="legend"><i class="dot dot-orange"></i> Curto</span><span class="legend"><i class="dot dot-blue"></i> Longo</span></div>
+      </div>
+      <div id="chart-prazo" class="chart" style="height:300px"></div>
+    </div>
+
+    <div class="panel span-6">
+      <div class="panel-header">
+        <div class="panel-title">Endividamento por empresa</div>
+        <div class="panel-actions"><span class="muted">R$ contratado</span></div>
+      </div>
+      <div id="chart-empresa" class="chart" style="height:300px"></div>
+    </div>
+
+    <!-- Índice + Garantias -->
+    <div class="panel span-6">
+      <div class="panel-header">
+        <div class="panel-title">Exposição por índice</div>
+        <div class="panel-actions"><span class="muted">PRÉ, CDI, TLP, USD</span></div>
+      </div>
+      <div id="chart-indice" class="chart" style="height:300px"></div>
+    </div>
+
+    <div class="panel span-6">
+      <div class="panel-header">
+        <div class="panel-title">Garantias / Modalidade 2</div>
+        <div class="panel-actions"><span class="muted">contratado</span></div>
+      </div>
+      <div id="chart-garantia" class="chart" style="height:300px"></div>
+    </div>
+
+    <!-- Vencimentos + Tabela -->
+    <div class="panel span-12">
+      <div class="panel-header">
+        <div class="panel-title">Vencimentos por ano (longo prazo)</div>
+        <div class="panel-actions"><span class="muted">saldo a pagar</span></div>
+      </div>
+      <div id="chart-vencimentos" class="chart" style="height:280px"></div>
+    </div>
+
+    <div class="panel span-12">
+      <div class="panel-header">
+        <div class="panel-title">Tabela analítica · contratos</div>
+        <div class="panel-actions"><span class="muted" id="tbl-count">—</span></div>
+      </div>
+      <div class="table-wrap">
+        <table class="dt" id="tbl-contratos">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Instituição</th>
+              <th>Empresa</th>
+              <th>Modalidade</th>
+              <th>Contrato</th>
+              <th class="num">Contratado</th>
+              <th class="num">Curto prazo</th>
+              <th class="num">Longo prazo</th>
+              <th class="num">Total a pagar</th>
+              <th>Venc. final</th>
+              <th>Índice</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div>MetaFoco · Dashboard de Endividamento · construído por <a href="https://arthurfaria.tech" target="_blank" rel="noopener">Arthur Faria</a></div>
+  <div class="muted" id="footer-data">—</div>
+</footer>
+
+<div class="export-overlay" id="export-overlay" aria-hidden="true">
+  <div class="spinner"></div>
+  <span id="export-overlay-text">Gerando arquivo…</span>
+</div>
+
+<script src="/js/auth.js"></script>
+<script>
+let charts = {};
+let currentData = null;
+
+async function loadFilters() {
+  try {
+    const data = await apiRequest('/dashboard/filtros');
+    fillSelect('f-instituicao', data.instituicoes);
+    fillSelect('f-empresa', data.empresas);
+    fillSelect('f-modalidade', data.modalidades);
+    fillSelect('f-indice', data.indices);
+  } catch (e) { console.error(e); }
+}
+
+async function loadDatasBase() {
+  try {
+    const data = await apiRequest('/dashboard/datas-base');
+    const sel = document.getElementById('f-datbase');
+    data.datas.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      const dt = new Date(d + 'T00:00:00');
+      opt.textContent = dt.toLocaleDateString('pt-BR');
+      sel.appendChild(opt);
+    });
+  } catch (e) { console.error(e); }
+}
+
+function fillSelect(id, values) {
+  const sel = document.getElementById(id);
+  values.forEach(v => {
+    if (!v) return;
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+}
+
+function getFilterParams() {
+  const p = new URLSearchParams();
+  const db = document.getElementById('f-datbase').value;
+  if (db) p.append('data_base', db);
+  return p.toString();
+}
+
+async function loadDashboard() {
+  try {
+    const fd = document.getElementById('f-datbase').value;
+    const fi = document.getElementById('f-instituicao').value;
+    const fe = document.getElementById('f-empresa').value;
+    const fm = document.getElementById('f-modalidade').value;
+    const fx = document.getElementById('f-indice').value;
+
+    const detalhes = await apiRequest('/dashboard/detalhes');
+
+    // Aplicar todos os filtros client-side
+    let rows = detalhes;
+    if (fd) rows = rows.filter(r => r.data_base === fd);
+    if (fi) rows = rows.filter(r => r.instituicao === fi);
+    if (fe) rows = rows.filter(r => r.empresa === fe);
+    if (fm) rows = rows.filter(r => r.modalidade === fm);
+    if (fx) rows = rows.filter(r => r.indice === fx);
+
+    currentData = { detalhes: rows };
+    renderDashboard(currentData);
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao carregar dados: ' + e.message, 'error');
+  }
+}
+
+function renderDashboard(data) {
+  const rows = data.detalhes || [];
+  let agregado;
+
+  {
+    const totalContratado = rows.reduce((s, r) => s + (r.contratado || 0), 0);
+    const totalCurto = rows.reduce((s, r) => s + (r.curto_prazo || 0), 0);
+    const totalLongo = rows.reduce((s, r) => s + (r.longo_prazo || 0), 0);
+    const totalPg = rows.reduce((s, r) => s + (r.total_pg || 0), 0);
+
+    const porInst = {};
+    const porMod = {};
+    const porEmpresa = {};
+    const porIndice = {};
+    const porGarantia = {};
+    const porAno = {};
+    rows.forEach(r => {
+      const ins = r.instituicao || 'N/D';
+      porInst[ins] = (porInst[ins] || 0) + (r.total_pg || 0);
+      const mod = r.modalidade || 'N/D';
+      porMod[mod] = (porMod[mod] || 0) + (r.contratado || 0);
+      const emp = r.empresa || 'N/D';
+      porEmpresa[emp] = (porEmpresa[emp] || 0) + (r.contratado || 0);
+      const ix = r.indice || 'N/D';
+      porIndice[ix] = (porIndice[ix] || 0) + (r.contratado || 0);
+      const g = r.modalidade2 || 'N/D';
+      porGarantia[g] = (porGarantia[g] || 0) + (r.contratado || 0);
+      if (r.final) {
+        const ano = new Date(r.final + 'T00:00:00').getFullYear();
+        porAno[ano] = (porAno[ano] || 0) + (r.longo_prazo || 0);
+      }
+    });
+
+    agregado = {
+      total_contratado: totalContratado,
+      total_curto_prazo: totalCurto,
+      total_longo_prazo: totalLongo,
+      total_pg: totalPg,
+      total_contratos: rows.length,
+      por_instituicao: Object.entries(porInst).map(([k, v]) => ({ nome: k, valor: v })),
+      por_modalidade: Object.entries(porMod).map(([k, v]) => ({ nome: k, valor: v })),
+      por_empresa: Object.entries(porEmpresa).map(([k, v]) => ({ nome: k, valor: v })),
+      por_indice: Object.entries(porIndice).map(([k, v]) => ({ nome: k, valor: v })),
+      por_garantia: Object.entries(porGarantia).map(([k, v]) => ({ nome: k, valor: v })),
+      por_ano_venc: porAno,
+    };
+  }
+
+  // KPIs
+  document.getElementById('kpi-contratado').textContent = fmtMoney(agregado.total_contratado);
+  document.getElementById('kpi-curto').textContent = fmtMoney(agregado.total_curto_prazo);
+  document.getElementById('kpi-longo').textContent = fmtMoney(agregado.total_longo_prazo);
+  document.getElementById('kpi-total-pg').textContent = fmtMoney(agregado.total_pg);
+  document.getElementById('kpi-contratado-count').textContent = `${agregado.total_contratos} contratos`;
+
+  const summary = document.getElementById('filter-summary');
+  summary.textContent = `${agregado.total_contratos} contratos · ${fmtMoney(agregado.total_pg)}`;
+
+  const instNomes = (agregado.por_instituicao || []).map(x => x.nome);
+  const instVals = (agregado.por_instituicao || []).map(x => Math.round(x.valor));
+
+  renderInstituicoes(instNomes, instVals);
+  renderModalidades(agregado.por_modalidade);
+  renderPrazo(agregado.total_curto_prazo, agregado.total_longo_prazo);
+  renderEmpresa(agregado.por_empresa);
+  renderIndice(agregado.por_indice);
+  renderGarantia(agregado.por_garantia);
+  renderVencimentos(agregado.por_ano_venc);
+  renderTabela(rows);
+
+  // Footer
+  const fData = document.getElementById('footer-data');
+  const db = document.getElementById('f-datbase').value;
+  if (db) {
+    const dt = new Date(db + 'T00:00:00');
+    fData.textContent = 'Data base: ' + dt.toLocaleDateString('pt-BR') + ' · ' + rows.length + ' contratos';
+  } else {
+    fData.textContent = 'Todas as datas base · ' + rows.length + ' contratos';
+  }
+}
+
+function renderInstituicoes(nomes, valores) {
+  const data = nomes.map((n, i) => ({ x: n, y: valores[i] })).sort((a, b) => b.y - a.y);
+
+  const cfg = {
+    chart: { type: 'bar', height: 320, toolbar: { show: false }, background: 'transparent' },
+    plotOptions: { bar: { horizontal: true, barHeight: '65%' } },
+    series: [{ name: 'Saldo a pagar', data }],
+    colors: ['#5794f2'],
+    xaxis: { labels: { style: { colors: '#a4abb5' }, formatter: (v) => compactMoney(v) }, axisBorder: { color: '#2a313c' } },
+    yaxis: { labels: { style: { colors: '#a4abb5' } } },
+    grid: { borderColor: '#1f2730' },
+    dataLabels: { enabled: true, formatter: (v) => compactMoney(v), style: { colors: ['#fff'], fontSize: '10px' } },
+    tooltip: { theme: 'dark', y: { formatter: (v) => fmtMoney(v) } },
+    legend: { labels: { colors: '#a4abb5' } },
+  };
+  renderOrUpdate('chart-instituicoes', cfg, 'instituicoes');
+}
+
+function renderModalidades(porMod) {
+  const nomes = (porMod || []).map(x => x.nome);
+  const vals = (porMod || []).map(x => Math.round(x.valor));
+  const cfg = {
+    chart: { type: 'bar', height: 320, toolbar: { show: false }, background: 'transparent' },
+    plotOptions: { bar: { horizontal: false, columnWidth: '70%' } },
+    series: [{ name: 'Contratado', data: vals }],
+    colors: ['#f59e0b'],
+    xaxis: { categories: nomes, labels: { style: { colors: '#a4abb5' }, rotate: -30 } },
+    yaxis: { labels: { style: { colors: '#a4abb5' }, formatter: (v) => compactMoney(v) } },
+    grid: { borderColor: '#1f2730' },
+    dataLabels: { enabled: false },
+    tooltip: { theme: 'dark', y: { formatter: (v) => fmtMoney(v) } },
+  };
+  renderOrUpdate('chart-modalidades', cfg, 'modalidades');
+}
+
+function renderPrazo(curto, longo) {
+  const cfg = {
+    chart: { type: 'donut', height: 300, toolbar: { show: false }, background: 'transparent' },
+    series: [Math.round(curto), Math.round(longo)],
+    labels: ['Curto prazo', 'Longo prazo'],
+    colors: ['#f59e0b', '#5794f2'],
+    legend: { labels: { colors: '#a4abb5' } },
+    dataLabels: { enabled: true, formatter: (v) => v.toFixed(1) + '%' },
+    plotOptions: { pie: { donut: { labels: { show: true, total: { show: true, label: 'Total', color: '#e6e9ed', formatter: (w) => compactMoney(w.globals.seriesTotals.reduce((a,b)=>a+b,0)) } } } } },
+    tooltip: { theme: 'dark', y: { formatter: (v) => fmtMoney(v) } },
+  };
+  renderOrUpdate('chart-prazo', cfg, 'prazo');
+}
+
+function renderEmpresa(porEmp) {
+  const nomes = (porEmp || []).map(x => x.nome);
+  const vals = (porEmp || []).map(x => Math.round(x.valor));
+  const cfg = {
+    chart: { type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent' },
+    plotOptions: { bar: { horizontal: true, barHeight: '60%' } },
+    series: [{ name: 'Contratado', data: vals }],
+    colors: ['#a78bfa'],
+    xaxis: { labels: { style: { colors: '#a4abb5' }, formatter: (v) => compactMoney(v) } },
+    yaxis: { labels: { style: { colors: '#a4abb5' } } },
+    grid: { borderColor: '#1f2730' },
+    dataLabels: { enabled: true, formatter: (v) => compactMoney(v), style: { colors: ['#fff'], fontSize: '10px' } },
+    tooltip: { theme: 'dark', y: { formatter: (v) => fmtMoney(v) } },
+  };
+  renderOrUpdate('chart-empresa', cfg, 'empresa');
+}
+
+function renderIndice(porInd) {
+  const nomes = (porInd || []).map(x => x.nome);
+  const vals = (porInd || []).map(x => Math.round(x.valor));
+  const cfg = {
+    chart: { type: 'pie', height: 300, toolbar: { show: false }, background: 'transparent' },
+    series: vals, labels: nomes,
+    colors: ['#56d364', '#5794f2', '#f59e0b', '#ef4444', '#a78bfa'],
+    legend: { labels: { colors: '#a4abb5' } },
+    dataLabels: { enabled: true, formatter: (v, { seriesIndex, w }) => { const t = w.config.series[seriesIndex]; return compactMoney(t); } },
+    tooltip: { theme: 'dark', y: { formatter: (v) => fmtMoney(v) } },
+  };
+  renderOrUpdate('chart-indice', cfg, 'indice');
+}
+
+function renderGarantia(porGar) {
+  const nomes = (porGar || []).map(x => x.nome);
+  const vals = (porGar || []).map(x => Math.round(x.valor));
+  const cfg = {
+    chart: { type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent' },
+    plotOptions: { bar: { horizontal: true, barHeight: '70%' } },
+    series: [{ name: 'Contratado', data: vals }],
+    colors: ['#56d364'],
+    xaxis: { labels: { style: { colors: '#a4abb5' }, formatter: (v) => compactMoney(v) } },
+    yaxis: { labels: { style: { colors: '#a4abb5' } } },
+    grid: { borderColor: '#1f2730' },
+    dataLabels: { enabled: true, formatter: (v) => compactMoney(v), style: { colors: ['#fff'], fontSize: '10px' } },
+    tooltip: { theme: 'dark', y: { formatter: (v) => fmtMoney(v) } },
+  };
+  renderOrUpdate('chart-garantia', cfg, 'garantia');
+}
+
+function renderVencimentos(porAno) {
+  const anos = Object.keys(porAno || {}).sort((a, b) => a - b);
+  const vals = anos.map(a => Math.round(porAno[a]));
+  const cfg = {
+    chart: { type: 'bar', height: 280, toolbar: { show: false }, background: 'transparent' },
+    plotOptions: { bar: { horizontal: false, columnWidth: '55%' } },
+    series: [{ name: 'Saldo longo prazo', data: vals }],
+    colors: ['#5794f2'],
+    xaxis: { categories: anos, labels: { style: { colors: '#a4abb5' } } },
+    yaxis: { labels: { style: { colors: '#a4abb5' }, formatter: (v) => compactMoney(v) } },
+    grid: { borderColor: '#1f2730' },
+    dataLabels: { enabled: true, formatter: (v) => compactMoney(v), style: { colors: ['#fff'], fontSize: '10px' } },
+    tooltip: { theme: 'dark', y: { formatter: (v) => fmtMoney(v) } },
+  };
+  renderOrUpdate('chart-vencimentos', cfg, 'vencimentos');
+}
+
+function renderTabela(rows) {
+  const tbody = document.querySelector('#tbl-contratos tbody');
+  const countEl = document.getElementById('tbl-count');
+  countEl.textContent = rows.length + ' contratos';
+
+  const sorted = rows.slice().sort((a, b) => (b.total_pg || 0) - (a.total_pg || 0));
+  tbody.innerHTML = sorted.map((r, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${r.instituicao || '—'}</td>
+      <td>${r.empresa || '—'}</td>
+      <td>${r.modalidade || '—'}</td>
+      <td>${r.numero_contrato || '—'}</td>
+      <td class="num">${fmtMoney(r.contratado)}</td>
+      <td class="num">${fmtMoney(r.curto_prazo)}</td>
+      <td class="num">${fmtMoney(r.longo_prazo)}</td>
+      <td class="num">${fmtMoney(r.total_pg)}</td>
+      <td>${r.final ? new Date(r.final + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+      <td>${r.indice || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function renderOrUpdate(elId, cfg, key) {
+  if (charts[key]) { charts[key].updateOptions(cfg, false, true); return; }
+  charts[key] = new ApexCharts(document.querySelector('#' + elId), cfg);
+  charts[key].render();
+}
+
+function compactMoney(v) {
+  if (v == null || isNaN(v)) return '';
+  const abs = Math.abs(v);
+  if (abs >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+  if (abs >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+  return String(Math.round(v));
+}
+
+// ===== Refresh =====
+async function refresh() {
+  const btn = document.getElementById('btn-refresh');
+  if (btn.classList.contains('spinning')) return;
+  btn.classList.add('spinning');
+  try {
+    await loadDatasBaseFallback();
+    await loadDashboard();
+    loadMotorStatus();
+    const now = new Date();
+    document.getElementById('last-refresh').textContent = 'Atualizado ' + now.toLocaleTimeString('pt-BR');
+  } catch (e) { console.error(e); }
+  setTimeout(() => btn.classList.remove('spinning'), 350);
+}
+
+async function loadDatasBaseFallback() {
+  try {
+    const sel = document.getElementById('f-datbase');
+    const current = sel.value;
+    const data = await apiRequest('/dashboard/datas-base');
+    sel.innerHTML = '<option value="">Todas</option>';
+    data.datas.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      const dt = new Date(d + 'T00:00:00');
+      opt.textContent = dt.toLocaleDateString('pt-BR');
+      sel.appendChild(opt);
+    });
+    sel.value = current;
+  } catch (e) {}
+}
+
+// ===== Export =====
+const exportMenu = document.getElementById('export-menu');
+const exportOverlay = document.getElementById('export-overlay');
+const exportOverlayText = document.getElementById('export-overlay-text');
+
+function showExportOverlay(text) { exportOverlayText.textContent = text || 'Gerando arquivo…'; exportOverlay.classList.add('show'); }
+function hideExportOverlay() { exportOverlay.classList.remove('show'); }
+function closeExportMenu() { exportMenu.removeAttribute('open'); }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+function suffixFilename() {
+  const parts = [];
+  const db = document.getElementById('f-datbase').value;
+  if (db) parts.push('db-' + db);
+  const ins = document.getElementById('f-instituicao').value;
+  if (ins) parts.push(ins.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+  return parts.length ? '-' + parts.join('-') : '';
+}
+
+async function exportPNG() {
+  const target = document.querySelector('main.main-wrap');
+  const canvas = await html2canvas(target, { backgroundColor: '#0b0e14', scale: 2, useCORS: true, logging: false });
+  const link = document.createElement('a');
+  link.download = 'metafoco-dashboard-' + todayStr() + suffixFilename() + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+async function exportPDF() {
+  const target = document.querySelector('main.main-wrap');
+  const canvas = await html2canvas(target, { backgroundColor: '#0b0e14', scale: 2, useCORS: true, logging: false });
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const W = pdf.internal.pageSize.getWidth();
+  const H = pdf.internal.pageSize.getHeight();
+  pdf.setFillColor(11, 14, 20);
+  pdf.rect(0, 0, W, H, 'F');
+  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(230, 233, 237);
+  pdf.text('MetaFoco — Dashboard de Endividamento', 8, 10);
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(164, 171, 181);
+  const summary = document.getElementById('filter-summary').textContent || '';
+  const ts = new Date().toLocaleString('pt-BR');
+  pdf.text(summary + ' · Exportado em ' + ts, 8, 15);
+  const headerH = 19, footerH = 6, maxW = W - 10, maxH = H - headerH - footerH;
+  const ratio = canvas.width / canvas.height;
+  let imgW = maxW, imgH = imgW / ratio;
+  if (imgH > maxH) { imgH = maxH; imgW = imgH * ratio; }
+  const x = (W - imgW) / 2, y = headerH;
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, imgW, imgH, undefined, 'FAST');
+  pdf.setFontSize(7); pdf.setTextColor(107, 114, 128);
+  pdf.text('arthurfaria.tech · MetaFoco Dashboard BI', 8, H - 3);
+  pdf.text('Página 1 de 1', W - 8, H - 3, { align: 'right' });
+  pdf.save('metafoco-dashboard-' + todayStr() + suffixFilename() + '.pdf');
+}
+
+async function exportCSV() {
+  const data = currentData;
+  if (!data || !data.detalhes || data.detalhes.length === 0) { toast('Sem dados para exportar', 'warning'); return; }
+  const rows = data.detalhes;
+  const headers = ['Instituicao','Empresa','Modalidade','Contrato','Contratado','Curto_Prazo','Longo_Prazo','Total_Pagar','Venc_Final','Indice','Modalidade2','Perc_Rest'];
+  const lines = [headers.join(';')];
+  rows.forEach(r => {
+    lines.push([
+      csvEsc(r.instituicao), csvEsc(r.empresa), csvEsc(r.modalidade), csvEsc(r.numero_contrato),
+      String((r.contratado || 0)).replace('.', ','),
+      String((r.curto_prazo || 0)).replace('.', ','),
+      String((r.longo_prazo || 0)).replace('.', ','),
+      String((r.total_pg || 0)).replace('.', ','),
+      r.final || '', csvEsc(r.indice), csvEsc(r.modalidade2), String((r.perc_rest || 0)).replace('.', ','),
+    ].join(';'));
+  });
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'metafoco-contratos' + suffixFilename() + '-' + todayStr() + '.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function csvEsc(v) {
+  if (v == null) return '';
+  const s = String(v);
+  return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+exportMenu.querySelectorAll('button[data-export]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const kind = btn.getAttribute('data-export');
+    const label = { pdf: 'Gerando PDF…', png: 'Gerando imagem…', csv: 'Exportando CSV…' }[kind];
+    exportMenu.querySelectorAll('button').forEach(b => b.disabled = true);
+    showExportOverlay(label);
+    closeExportMenu();
+    try {
+      if (kind === 'pdf') await exportPDF();
+      else if (kind === 'png') await exportPNG();
+      else if (kind === 'csv') await exportCSV();
+    } catch (err) {
+      console.error(err);
+      toast('Não foi possível exportar: ' + err.message, 'error');
+    } finally {
+      hideExportOverlay();
+      exportMenu.querySelectorAll('button').forEach(b => b.disabled = false);
+    }
+  });
+});
+
+document.addEventListener('click', (e) => {
+  if (exportMenu.hasAttribute('open') && !exportMenu.contains(e.target)) closeExportMenu();
+});
+
+// ===== Motor de amortização — fidelidade =====
+const MOTOR_LABELS = {
+  OK: 'OK',
+  PARCIAL: 'PARCIAL',
+  FORA_PADRAO: 'Fora do padrão',
+  DADO_FALTANTE: 'Dado faltante',
+};
+const MOTOR_DESC = {
+  OK: 'Motor reproduz o contrato fielmente (amortização fecha com o financiado).',
+  PARCIAL: 'Próximo, mas incompleto — geralmente parcela final ausente na planilha ou pequenas diferenças.',
+  FORA_PADRAO: 'Estrutura que o motor ainda não cobre (cadência quinzenal, PRICE, CDI custom etc.).',
+  DADO_FALTANTE: 'Sem parcelas capturáveis ou sem valor financiado.',
+};
+
+async function loadMotorStatus() {
+  try {
+    const data = await apiRequest('/amortizacao/contratos');
+    const rows = data || [];
+    document.getElementById('motor-n-total').textContent = rows.length + ' contratos';
+
+    const counts = {
+      OK: 0, PARCIAL: 0, FORA_PADRAO: 0, DADO_FALTANTE: 0,
+    };
+    rows.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
+
+    const counters = document.getElementById('motor-counters');
+    counters.innerHTML = Object.keys(counts).map(k => `
+      <span class="motor-badge bdg-${k}" title="${MOTOR_DESC[k]}">
+        <i class="dot"></i>${MOTOR_LABELS[k]}
+        <span class="n">${counts[k]}</span>
+      </span>
+    `).join('');
+
+    const grid = document.getElementById('motor-grid');
+    grid.innerHTML = rows
+      .slice()
+      .sort((a, b) => (a.status === b.status ? (a.nome_aba || '').localeCompare(b.nome_aba || '') : 0))
+      .map(r => `
+        <div class="motor-item" title="${r.status_detalhe || ''} — ${(MOTOR_DESC[r.status] || '')}">
+          <span class="dot" style="background:${MOTOR_COLOR(r.status)}"></span>
+          <span class="aba">${r.nome_aba || '—'}</span>
+        </div>
+      `).join('');
+  } catch (err) {
+    console.error('motor:', err);
+    const grid = document.getElementById('motor-grid');
+    grid.innerHTML = '<div class="empty-state">Status do motor indisponível.</div>';
+  }
+}
+
+function MOTOR_COLOR(s) {
+  if (s === 'OK') return '#32d583';
+  if (s === 'PARCIAL') return '#ffb020';
+  if (s === 'DADO_FALTANTE') return '#9aa4b2';
+  return '#ff6b6b';
+}
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', () => {
+  if (!getToken()) { window.location.href = '/login'; return; }
+  renderTopbar('dashboard');
+  loadFilters();
+  loadDatasBase();
+  loadDashboard();
+  loadMotorStatus();
+
+  document.getElementById('btn-refresh').addEventListener('click', refresh);
+
+  ['f-datbase','f-instituicao','f-empresa','f-modalidade','f-indice'].forEach(id => {
+    document.getElementById(id).addEventListener('change', loadDashboard);
+  });
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    ['f-datbase','f-instituicao','f-empresa','f-modalidade','f-indice'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    loadDashboard();
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MetaFoco — Gestão de Usuários</title>
+<link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">
+      <img src="/assets/logo_cliente.png" alt="Logo" onerror="this.style.display='none'">
+    </div>
+    <div class="brand-text">
+      <div class="brand-title">MetaFoco</div>
+      <div class="brand-sub">Controle de Acesso</div>
+    </div>
+  </div>
+  <nav class="navlinks" id="navlinks-js"></nav>
+  <div class="topbar-right">
+    <span class="status-dot live"></span>
+    <span class="status-text">Live</span>
+    <div class="user-chip" id="user-chip-js"></div>
+    <div class="user-menu" id="user-menu-js"></div>
+  </div>
+</header>
+
+<main class="main-wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <div>
+      <h1 style="font-size:20px;font-weight:700">Gestão de Usuários</h1>
+      <p class="muted" style="font-size:13px;margin-top:4px">Crie usuários, defina perfis de acesso e gerencie senhas.</p>
+    </div>
+    <button class="btn btn-success" id="btn-novo">+ Novo usuário</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Usuários cadastrados</div>
+      <div class="panel-actions"><span class="muted" id="user-count">—</span></div>
+    </div>
+    <div class="table-wrap">
+      <table class="dt" id="tbl-usuarios">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Perfil</th>
+            <th>Status</th>
+            <th>Senha padrão</th>
+            <th style="text-align:right">Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal novo usuário -->
+<div class="modal-overlay" id="modal-novo">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">Novo usuário</div>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Nome *</label>
+          <input type="text" id="u-nome" />
+        </div>
+        <div class="form-field">
+          <label>Sobrenome *</label>
+          <input type="text" id="u-sobrenome" />
+        </div>
+      </div>
+      <div class="form-field" style="margin-top:12px">
+        <label>E-mail *</label>
+        <input type="email" id="u-email" />
+      </div>
+      <div class="form-field" style="margin-top:12px">
+        <label>Perfil de acesso</label>
+        <select id="u-perfil">
+          <option value="LEITURA">Leitura — apenas visualiza gráficos</option>
+          <option value="GESTOR">Gestor — upload e funcionalidades</option>
+        </select>
+      </div>
+      <p class="muted" style="font-size:12px;margin-top:14px">O usuário receberá a senha padrão <strong>Meta12345</strong> e deverá alterá-la no primeiro acesso.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button class="btn btn-success" data-save>Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal reset senha -->
+<div class="modal-overlay" id="modal-reset">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">Resetar senha</div>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;margin-bottom:12px">Deseja resetar a senha de <strong id="reset-nome">—</strong>?</p>
+      <p class="muted" style="font-size:12.5px">A senha será redefinida para <strong>Meta12345</strong> e o usuário deverá alterá-la no próximo login.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-close>Cancelar</button>
+      <button class="btn btn-danger" data-confirm>Resetar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/auth.js"></script>
+<script>
+let usuarios = [];
+let resetUserId = null;
+
+async function loadUsuarios() {
+  try {
+    usuarios = await apiRequest('/auth/usuarios');
+    renderUsuarios();
+  } catch (e) {
+    toast(e.message, 'error');
+    if (!isAdmin()) window.location.href = '/dashboard';
+  }
+}
+
+function renderUsuarios() {
+  document.getElementById('user-count').textContent = usuarios.length + ' usuários';
+  const tbody = document.querySelector('#tbl-usuarios tbody');
+  tbody.innerHTML = usuarios.map(u => {
+    const perfilLabel = u.perfil === 'SUPERADMIN' ? 'SuperAdmin' : (u.perfil === 'GESTOR' ? 'Gestor' : 'Leitura');
+    const perfilClass = u.perfil === 'SUPERADMIN' ? 'superadmin' : (u.perfil === 'GESTOR' ? 'gestor' : 'leitura');
+    const status = u.ativo ? '<span style="color:var(--green)">Ativo</span>' : '<span style="color:var(--red)">Inativo</span>';
+    const ehSelf = u.email === 'admin_meta';
+    return `
+      <tr>
+        <td><strong>${u.nome} ${u.sobrenome}</strong>${ehSelf ? ' <small class="muted">(você)</small>' : ''}</td>
+        <td>${u.email}</td>
+        <td><span class="perfil-badge ${perfilClass}">${perfilLabel}</span></td>
+        <td>${status}</td>
+        <td>${u.precisa_trocar_senha ? '<span class="muted">Pendente</span>' : '<span style="color:var(--green)">Trocada</span>'}</td>
+        <td style="text-align:right">
+          <button class="btn-icon" title="Resetar senha" data-reset="${u.id}" data-nome="${u.nome} ${u.sobrenome}">⟳</button>
+          ${u.perfil !== 'SUPERADMIN' ? `
+            <button class="btn-icon" title="${u.ativo ? 'Desativar' : 'Ativar'}" data-toggle="${u.id}" data-ativo="${u.ativo}">${u.ativo ? '⏻' : '▶'}</button>
+          ` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.querySelectorAll('[data-reset]').forEach(b => {
+    b.addEventListener('click', () => {
+      resetUserId = b.getAttribute('data-reset');
+      document.getElementById('reset-nome').textContent = b.getAttribute('data-nome');
+      document.getElementById('modal-reset').classList.add('show');
+    });
+  });
+
+  tbody.querySelectorAll('[data-toggle]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const id = b.getAttribute('data-toggle');
+      const ativo = b.getAttribute('data-ativo') === 'true';
+      if (confirm(ativo ? 'Desativar este usuário?' : 'Reativar este usuário?')) {
+        try {
+          await apiRequest('/auth/usuarios/' + id + '/ativar', { method: 'PUT', body: JSON.stringify({ ativo: !ativo }) });
+          toast(ativo ? 'Usuário desativado' : 'Usuário reativado', 'success');
+          loadUsuarios();
+        } catch (e) { toast(e.message, 'error'); }
+      }
+    });
+  });
+}
+
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); });
+  m.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => m.classList.remove('show')));
+});
+
+document.getElementById('btn-novo').addEventListener('click', () => {
+  document.getElementById('u-nome').value = '';
+  document.getElementById('u-sobrenome').value = '';
+  document.getElementById('u-email').value = '';
+  document.getElementById('u-perfil').value = 'LEITURA';
+  openModal('modal-novo');
+});
+
+document.querySelector('#modal-novo [data-save]').addEventListener('click', async () => {
+  const nome = document.getElementById('u-nome').value.trim();
+  const sobrenome = document.getElementById('u-sobrenome').value.trim();
+  const email = document.getElementById('u-email').value.trim();
+  const perfil = document.getElementById('u-perfil').value;
+  if (!nome || !sobrenome || !email) { toast('Preencha nome, sobrenome e e-mail', 'warning'); return; }
+  try {
+    await apiRequest('/auth/usuarios', {
+      method: 'POST',
+      body: JSON.stringify({ nome, sobrenome, email, perfil }),
+    });
+    toast('Usuário criado com sucesso!', 'success');
+    closeModal('modal-novo');
+    loadUsuarios();
+  } catch (e) { toast(e.message, 'error'); }
+});
+
+document.querySelector('#modal-reset [data-confirm]').addEventListener('click', async () => {
+  if (!resetUserId) return;
+  try {
+    await apiRequest('/auth/usuarios/' + resetUserId + '/resetar-senha', { method: 'PUT' });
+    toast('Senha resetada para Meta12345', 'success');
+    closeModal('modal-reset');
+    loadUsuarios();
+  } catch (e) { toast(e.message, 'error'); }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!getToken()) { window.location.href = '/login'; return; }
+  renderTopbar('usuarios');
+  if (!isAdmin()) {
+    toast('Acesso restrito ao administrador', 'error');
+    window.location.href = '/dashboard';
+    return;
+  }
+  loadUsuarios();
+});
+</script>
+
+</body>
+</html>

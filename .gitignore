@@ -1,0 +1,62 @@
+# ===== Dados confidenciais =====
+# Planilha original de endividamento (dados financeiros sensíveis)
+*.xlsm
+*.xlsx
+"*Endividamento*.xls*"
+# Arquivos compactados
+*.rar
+*.zip
+*.7z
+
+# ===== Segredos / ambiente =====
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.secrets
+
+# ===== Documentos internos =====
+# Histórico de desenvolvimento com credenciais e estrutura interna
+agents.md
+AGENTS.md
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+backend/venv/
+.venv/
+venv/
+env/
+.env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ===== Projeto legado (não faz parte do sistema atual) =====
+app/
+motor/
+
+# ===== Logs =====
+*.log
+log.txt
+
+# ===== SO / editor =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ===== Banco / dados gerados =====
+*.dump
+*.sql
+*.backup
+/tmp/
