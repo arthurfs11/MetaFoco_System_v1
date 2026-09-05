@@ -186,6 +186,33 @@
       <div class="motor-grid" id="motor-grid"></div>
     </div>
 
+    <!-- Evolução do endividamento -->
+    <div class="panel span-12">
+      <div class="panel-header">
+        <div class="panel-title">Evolução do endividamento</div>
+        <div class="panel-actions">
+          <span class="legend"><i class="dot dot-orange"></i> Curto</span>
+          <span class="legend"><i class="dot dot-blue"></i> Longo</span>
+          <span class="muted" id="evo-cobertura">—</span>
+        </div>
+      </div>
+      <div id="chart-evolucao" class="chart" style="height:320px"></div>
+      <div class="muted" id="evo-foot" style="margin-top:6px"></div>
+    </div>
+
+    <!-- Indexadores -->
+    <div class="panel span-12">
+      <div class="panel-header">
+        <div class="panel-title">Indexadores mensais — CDI × IPCA</div>
+        <div class="panel-actions">
+          <span class="legend"><i class="dot dot-green"></i> IPCA %</span>
+          <span class="legend"><i class="dot dot-blue"></i> CDI %</span>
+          <span class="muted" id="idx-selic">—</span>
+        </div>
+      </div>
+      <div id="chart-indexadores" class="chart" style="height:300px"></div>
+    </div>
+
     <!-- Instituições + Modalidades -->
     <div class="panel span-8">
       <div class="panel-header">
@@ -592,6 +619,102 @@ function compactMoney(v) {
   return String(Math.round(v));
 }
 
+// ===== Evolução do endividamento (motor) =====
+async function loadEvolucao() {
+  try {
+    const data = await apiRequest('/dashboard/evolucao');
+    renderEvolucao(data);
+  } catch (e) {
+    console.error('evolucao:', e);
+  }
+}
+
+function renderEvolucao(data) {
+  const cobertura = document.getElementById('evo-cobertura');
+  cobertura.textContent = (data.cobertura || 0) + '/' + (data.tentados || 0) + ' contratos (OK/PARCIAL)';
+
+  const foot = document.getElementById('evo-foot');
+  if (data.benchmark) {
+    const b = data.benchmark;
+    const dt = new Date(b.data + 'T00:00:00').toLocaleDateString('pt-BR');
+    foot.textContent = `Referência Excel (todos os contratos) em ${dt}: ${b.n} contratos · saldo ${fmtMoney(b.saldo)} · CP ${fmtMoney(b.curto)} · LP ${fmtMoney(b.longo)}`;
+  } else {
+    foot.textContent = '';
+  }
+
+  const cp = (data.series || []).map(p => ({ x: new Date(p.data + 'T00:00:00'), y: Math.round(p.curto) }));
+  const lp = (data.series || []).map(p => ({ x: new Date(p.data + 'T00:00:00'), y: Math.round(p.longo) }));
+
+  const annotations = [];
+  if (data.benchmark) {
+    annotations.push({
+      x: new Date(data.benchmark.data + 'T00:00:00').getTime(),
+      borderColor: '#ff6b6b',
+      borderWidth: 2,
+      label: {
+        text: 'Base Excel',
+        style: { color: '#fff', background: '#7f1d1d' },
+      },
+    });
+  }
+
+  const cfg = {
+    chart: { type: 'area', height: 320, stacked: true, toolbar: { show: false }, background: 'transparent' },
+    series: [
+      { name: 'Curto prazo', data: cp },
+      { name: 'Longo prazo', data: lp },
+    ],
+    colors: ['#f59e0b', '#5794f2'],
+    stroke: { width: 2 },
+    fill: { type: 'gradient', gradient: { opacityFrom: .55, opacityTo: .05 } },
+    annotations: { xaxis: annotations },
+    xaxis: { type: 'datetime', labels: { style: { colors: '#a4abb5' }, formatter: (v) => { const d = new Date(v); return d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }); } }, axisBorder: { color: '#2a313c' } },
+    yaxis: { labels: { style: { colors: '#a4abb5' }, formatter: (v) => compactMoney(v) } },
+    grid: { borderColor: '#1f2730' },
+    dataLabels: { enabled: false },
+    tooltip: { theme: 'dark', y: { formatter: (v) => fmtMoney(v) } },
+    legend: { labels: { colors: '#a4abb5' } },
+  };
+  renderOrUpdate('chart-evolucao', cfg, 'evolucao');
+}
+
+// ===== Indexadores mensais =====
+async function loadIndexadores() {
+  try {
+    const data = await apiRequest('/dashboard/indexadores');
+    renderIndexadores(data);
+  } catch (e) {
+    console.error('indexadores:', e);
+  }
+}
+
+function renderIndexadores(data) {
+  const selic = document.getElementById('idx-selic');
+  selic.textContent = data.selic_aa != null ? 'SELIC ' + data.selic_aa.toLocaleString('pt-BR') + '% a.a.' : '—';
+
+  const months = (data.series || []).map(p => p.mes);
+  const cdi = (data.series || []).map(p => p.cdi);
+  const ipca = (data.series || []).map(p => p.ipca);
+
+  const cfg = {
+    chart: { type: 'line', height: 300, toolbar: { show: false }, background: 'transparent', zoom: { enabled: false } },
+    series: [
+      { name: 'IPCA %', type: 'bar', data: ipca },
+      { name: 'CDI %', type: 'line', data: cdi },
+    ],
+    colors: ['#56d364', '#5794f2'],
+    stroke: { width: [0, 2.5], curve: 'smooth' },
+    plotOptions: { bar: { columnWidth: '55%', borderRadius: 2 } },
+    xaxis: { categories: months, labels: { style: { colors: '#a4abb5' }, rotate: -45 } },
+    yaxis: { labels: { style: { colors: '#a4abb5' }, formatter: (v) => v.toFixed(2) + '%' } },
+    grid: { borderColor: '#1f2730' },
+    dataLabels: { enabled: false },
+    tooltip: { theme: 'dark', y: { formatter: (v) => (v == null ? '—' : v.toFixed(3) + '%') } },
+    legend: { labels: { colors: '#a4abb5' } },
+  };
+  renderOrUpdate('chart-indexadores', cfg, 'indexadores');
+}
+
 // ===== Refresh =====
 async function refresh() {
   const btn = document.getElementById('btn-refresh');
@@ -601,6 +724,8 @@ async function refresh() {
     await loadDatasBaseFallback();
     await loadDashboard();
     loadMotorStatus();
+    loadEvolucao();
+    loadIndexadores();
     const now = new Date();
     document.getElementById('last-refresh').textContent = 'Atualizado ' + now.toLocaleTimeString('pt-BR');
   } catch (e) { console.error(e); }
@@ -802,6 +927,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDatasBase();
   loadDashboard();
   loadMotorStatus();
+  loadEvolucao();
+  loadIndexadores();
 
   document.getElementById('btn-refresh').addEventListener('click', refresh);
 
