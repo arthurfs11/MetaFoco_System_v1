@@ -81,6 +81,7 @@ function renderTopbar(activeLink) {
 
   // Determinar links permitidos
   let links = '<a class="navlink" data-link="dashboard" href="/dashboard">Dashboard</a>';
+  links += '<a class="navlink" data-link="vendas" href="/vendas">Vendas</a>';
   if (isGestor()) {
     links += '<a class="navlink" data-link="contratos" href="/contratos">Contratos</a>';
     links += '<a class="navlink" data-link="upload" href="/upload">Upload</a>';

@@ -131,6 +131,75 @@ class ContratoParam(Base):
     status = Column(String(30), default="PENDENTE")  # OK / PARCIAL / FORA_PADRAO / DADO_FALTANTE
     status_detalhe = Column(String(255))
 
+class EmpresaVenda(Base):
+    """empresas[tFantasia] — segmentação Empresa e eixo do 'Resumo por Empresa'."""
+    __tablename__ = "empresas_vendas"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    codigo = Column(Integer, unique=True, index=True, nullable=False)   # NEMPRESA
+    fantasia = Column(String(255))                                      # tFantasia
+
+
+class Venda(Base):
+    """Vendas[NTOTAL, NFRETE, NDESCONTO, NVALORLUCRO, NEMPRESA, DDATA, NDOCUMENTO, VRQTD].
+
+    Linha = item/venda avulsa. Documentos com soma de VRQTD <= 0 são
+    devoluções/cancelamentos (excluídos de qtdVendas).
+    """
+    __tablename__ = "vendas"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    data = Column(Date, index=True)                  # DDATA
+    empresa_id = Column(Integer, index=True)         # NEMPRESA
+    ndocumento = Column(String(60), index=True)      # NDOCUMENTO
+    vendedor_1_2 = Column(String(120))               # segmentação "Vendedor 1/2"
+    vendedor = Column(String(120))                   # eixo do bookmark Vendedores
+    cliente = Column(String(255))                    # eixo do bookmark Clientes
+    grupo = Column(String(255))                      # eixo do bookmark Grupo
+    subgrupo = Column(String(255))                   # eixo do bookmark Subgrupo
+    ntotal = Column(Float)                           # NTOTAL
+    nfrete = Column(Float)                           # NFRETE
+    ndesconto = Column(Float)                        # NDESCONTO
+    nvalorlucro = Column(Float)                      # NVALORLUCRO
+    vrqtd = Column(Float)                            # VRQTD
+
+
+class CalendarioDia(Base):
+    """Calendario[Date, DiaUtil] — eixo temporal das segmentações e gráficos."""
+    __tablename__ = "calendario"
+
+    data = Column(Date, primary_key=True)
+    diautil = Column(Integer, default=1)
+
+
+class VendedorMeta(Base):
+    """vendedores[CHAVE, DATA, META, NCHTIPOENTIDADE] — metas por vendedor/mês."""
+    __tablename__ = "vendedores_metas"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    chave = Column(Integer, index=True)              # CHAVE
+    data = Column(Date, index=True)                  # DATA (mês de referência)
+    meta = Column(Float)                             # META
+    nchtipoentidade = Column(Integer)                # NCHTIPOENTIDADE
+
+
+class InadimplenciaVenda(Base):
+    """inadimplencia[VALOR, STATUS.1] — VALOR com STATUS.1='VENCIDO' conta."""
+    __tablename__ = "inadimplencia_vendas"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    data = Column(Date, index=True)
+    valor = Column(Float)
+    status = Column(String(60))                      # STATUS.1 ("VENCIDO", ...)
+
+
+class FreteOpcao(Base):
+    """Fretes[OpcaoFrete] — dimensão do segmentador Frete (Com/Sem Frete)."""
+    __tablename__ = "fretes_opcoes"
+
+    opcao = Column(String(60), primary_key=True)
+
+
 class Parcela(Base):
     """Datas reais de vencimento de cada parcela, extraídas da aba de contrato.
 

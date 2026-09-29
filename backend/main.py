@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from database import engine, Base
 import models.models
-from routers import auth, contratos, upload, dashboard, amortizacao
+from routers import auth, contratos, upload, dashboard, amortizacao, vendas
 import os
 
 # Criar tabelas
@@ -27,6 +27,7 @@ app.include_router(contratos.router, prefix="/api/contratos", tags=["Contratos"]
 app.include_router(upload.router, prefix="/api/upload", tags=["Upload"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(amortizacao.router, prefix="/api/amortizacao", tags=["Amortização"])
+app.include_router(vendas.router, prefix="/api/vendas", tags=["Vendas"])
 
 # Servir frontend
 frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -66,6 +67,10 @@ async def contrato_detalhe_page():
 @app.get("/upload")
 async def upload_page():
     return _page("upload.html")
+
+@app.get("/vendas")
+async def vendas_page():
+    return _page("vendas.html")
 
 if __name__ == "__main__":
     import uvicorn

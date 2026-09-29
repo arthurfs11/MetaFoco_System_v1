@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MetaFoco — Vendas por Loja</title>
+<link rel="stylesheet" href="/css/styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.1/dist/apexcharts.min.js" defer></script>
+<style>
+  /* ===== Aba VENDAS — réplica 1:1 do Power BI (tema claro da aba) ===== */
+  #vendas-app {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 58px);
+    background: #ffffff;
+    color: #2b2f36;
+    font-family: inherit;
+  }
+
+  /* ---------- Zona B: coluna lateral ---------- */
+  #v-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e5e7eb;
+    padding: 18px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .v-logo { text-align: center; margin-bottom: 14px; }
+  .v-logo-linha {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-weight: 800; font-size: 20px; letter-spacing: .5px;
+  }
+  .v-logo-gmad { color: #c8102e; }
+  .v-logo-losango {
+    width: 14px; height: 14px; background: #c8102e; display: inline-block;
+    transform: rotate(45deg); border-radius: 2px;
+  }
+  .v-logo-mad { color: #6a7f10; font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .v-logo-tag { color: #6a7f10; font-size: 10.5px; font-style: italic; margin-top: 1px; }
+  .v-nav-btn {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid transparent; border-radius: 7px;
+    background: #ffffff; color: #4b5563; font-size: 12px; font-weight: 600;
+    padding: 9px 10px; cursor: pointer; text-align: left; width: 100%;
+  }
+  .v-nav-btn .v-ico { width: 18px; height: 18px; flex: none; display: flex; align-items: center; justify-content: center; }
+  .v-nav-btn.active {
+    background: #e3f0dc; color: #33591c; border-color: #d3e6c8;
+  }
+  .v-nav-btn:not(.active):hover { background: #f4f7f9; }
+
+  /* ---------- Zona C: cabeçalho + segmentações ---------- */
+  #v-main { display: flex; flex-direction: column; background: #ffffff; min-width: 0; }
+  #v-header {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+    padding: 16px 22px 10px;
+  }
+  #v-titulo { font-size: 22px; font-weight: 800; color: #5f6b12; letter-spacing: .3px; }
+  .v-slicers { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+  .v-slicer { display: flex; flex-direction: column; gap: 3px; min-width: 110px; }
+  .v-slicer label {
+    font-size: 9.5px; font-weight: 700; color: #9ca3af; letter-spacing: .8px; text-transform: uppercase;
+  }
+  .v-slicer select {
+    border: 1px solid #d1d5db; border-radius: 6px; background: #ffffff;
+    color: #2b2f36; font-size: 12px; padding: 5px 6px; font-family: inherit;
+    max-width: 150px;
+  }
+  .v-slicer.data-slicer { min-width: 120px; }
+  .v-slicer .data-dupla { display: flex; gap: 6px; }
+  .v-slicer .data-dupla select { max-width: 84px; }
+
+  /* ---------- Zona D: cards ---------- */
+  #v-cards {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    border-top: 1px solid #f1f3f5; border-bottom: 1px solid #f1f3f5;
+    margin: 0 22px; padding: 14px 0 16px;
+  }
+  .v-card { padding: 4px 18px; position: relative; }
+  .v-card:not(:first-child)::before {
+    content: ''; position: absolute; left: 0; top: 6%; bottom: 6%; width: 1px; background: #f1f3f5;
+  }
+  .v-card .v-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .v-card .v-card-ico {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #ffffff; font-weight: 800; font-size: 13px; flex: none;
+  }
+  .v-card .v-card-label { font-size: 11px; font-weight: 700; color: #6b7280; letter-spacing: .5px; }
+  .v-card .v-card-value { font-size: 24px; font-weight: 800; color: #1f2937; font-variant-numeric: tabular-nums; }
+  .v-card .v-card-sub { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+  .v-card .v-card-link {
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
+    font-size: 10.5px; color: #2563eb; cursor: pointer; text-decoration: none;
+  }
+  .ico-green  { background: #34a853; }
+  .ico-orange { background: #f97316; }
+  .ico-yellow { background: #eab308; }
+  .ico-plain  { background: transparent; border: 2px solid #9ca3af; color: #9ca3af; }
+
+  /* ---------- Zona E: corpo principal ---------- */
+  #v-corpo {
+    display: grid; grid-template-columns: 270px 1fr; gap: 0;
+    flex: 1; padding: 0 22px 18px;
+  }
+  #v-e1 { display: flex; flex-direction: column; gap: 12px; padding-right: 16px; }
+  .v-view-btns { display: flex; flex-direction: column; gap: 0; }
+  .v-view-btn {
+    border: 1px solid #d1d5db; background: #ffffff; color: #15803d;
+    font-size: 11.5px; font-weight: 700; padding: 9px 10px; border-radius: 8px;
+    cursor: pointer; text-align: center; width: 100%; margin-bottom: 7px;
+  }
+  .v-view-btn.active { background: #15803d; color: #ffffff; border-color: #15803d; }
+  .v-view-btn:not(.active):hover { border-color: #15803d; }
+
+  .v-gauges { display: flex; flex-direction: column; gap: 8px; }
+  .v-gauge-box {
+    border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 10px 10px;
+    background: #ffffff; text-align: center;
+  }
+  .v-gauge-title { font-size: 11px; font-weight: 800; color: #374151; }
+  .v-gauge-nums {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 10.5px; color: #6b7280; margin-top: -8px; padding: 0 10px;
+  }
+  .v-gauge-nums .v-val { font-weight: 800; color: #1f2937; font-size: 13px; }
+
+  #v-e2 { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .v-chart-box {
+    border: 1px solid #e5e7eb; border-radius: 10px; background: #ffffff; padding: 10px 12px 4px;
+  }
+  .v-chart-box .v-chart-title { font-size: 12px; font-weight: 800; color: #374151; text-align: center; }
+  #g-central { flex: 0 1 auto; }
+  .v-period-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .v-period-box { border: 1px solid #e5e7eb; border-radius: 10px; background: #ffffff; padding: 10px 10px 4px; }
+
+  .v-empty { padding: 40px; text-align: center; color: #9ca3af; font-size: 13px; }
+  .v-note { font-size: 11px; color: #9ca3af; text-align: right; margin: 2px 0 0; }
+
+  .footer { margin-top: 0; }
+
+  @media (max-width: 1080px) {
+    #vendas-app { grid-template-columns: 1fr; }
+    #v-sidebar { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid #e5e7eb; }
+    #v-header { flex-direction: column; align-items: stretch; }
+    #v-cards { grid-template-columns: repeat(3, 1fr); row-gap: 14px; }
+    #v-corpo { grid-template-columns: 1fr; }
+    #v-e1 { padding-right: 0; }
+    .v-period-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">
+      <img src="/assets/logo_cliente.png" alt="Logo" onerror="this.style.display='none'">
+    </div>
+    <div class="brand-text">
+      <div class="brand-title">MetaFoco</div>
+      <div class="brand-sub">Dashboard GERENCIAL · Aba Vendas</div>
+    </div>
+  </div>
+  <nav class="navlinks" id="navlinks-js"></nav>
+  <div class="topbar-right">
+    <span class="status-dot live" title="Dados do grupo"></span>
+    <span class="status-text">Live</span>
+    <button id="btn-refresh" class="btn-refresh" title="Atualizar dados" aria-label="Atualizar">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>
+      </svg>
+    </button>
+    <span class="topbar-divider"></span>
+    <span class="topbar-meta" id="last-refresh">—</span>
+    <div class="user-chip" id="user-chip-js"></div>
+    <div class="user-menu" id="user-menu-js"></div>
+  </div>
+</header>
+
+<div id="vendas-app">
+  <!-- Zona B: coluna lateral -->
+  <aside id="v-sidebar">
+    <div class="v-logo">
+      <div class="v-logo-linha"><span class="v-logo-gmad">GMAD</span><span class="v-logo-losango"></span></div>
+      <div class="v-logo-mad">Madcentro</div>
+      <div class="v-logo-tag">Tudo para móveis</div>
+    </div>
+    <div id="v-nav"></div>
+  </aside>
+
+  <!-- Zonas C, D, E -->
+  <div id="v-main">
+    <div id="v-header">
+      <div id="v-titulo">VENDAS POR LOJA</div>
+      <div class="v-slicers">
+        <div class="v-slicer data-slicer">
+          <label>Data</label>
+          <div class="data-dupla">
+            <select id="f-ano"><option value="">Todos</option></select>
+            <select id="f-mes"><option value="">Todos</option></select>
+          </div>
+        </div>
+        <div class="v-slicer">
+          <label>Empresa</label>
+          <select id="f-empresa"><option value="">Todos</option></select>
+        </div>
+        <div class="v-slicer">
+          <label>Vendedor 1/2</label>
+          <select id="f-vendedor"><option value="">Todos</option></select>
+        </div>
+        <div class="v-slicer">
+          <label>Status inadim</label>
+          <select id="f-status"><option value="">Todos</option></select>
+        </div>
+        <div class="v-slicer">
+          <label>Frete</label>
+          <select id="f-frete"><option value="">Todos</option><option value="Com Frete">Com Frete</option><option value="Sem Frete">Sem Frete</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div id="v-cards">
+      <div class="v-card">
+        <div class="v-card-top"><span class="v-card-ico ico-green">$</span><span class="v-card-label">Faturamento</span></div>
+        <div class="v-card-value" id="card-faturamento">—</div>
+      </div>
+      <div class="v-card">
+        <div class="v-card-top"><span class="v-card-ico ico-orange">%</span><span class="v-card-label">Desconto</span></div>
+        <div class="v-card-value" id="card-desconto">—</div>
+      </div>
+      <div class="v-card">
+        <div class="v-card-top"><span class="v-card-ico ico-green">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 18h6v-8H3zM9 18h5v-4H9zM14 18h7V8h-7z"/></svg>
+        </span><span class="v-card-label">Lucro</span></div>
+        <div class="v-card-value" id="card-lucro">—</div>
+      </div>
+      <div class="v-card">
+        <div class="v-card-top"><span class="v-card-ico ico-orange">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 6h14l-1.5 11h-11z"/><circle cx="8" cy="20" r="1.6"/><circle cx="16.5" cy="20" r="1.6"/></svg>
+        </span><span class="v-card-label">Vendas</span></div>
+        <div class="v-card-value" id="card-vendas">—</div>
+      </div>
+      <div class="v-card">
+        <div class="v-card-top"><span class="v-card-label">T. M.</span></div>
+        <div class="v-card-value" id="card-ticket">—</div>
+        <div class="v-card-sub">Ticket Médio</div>
+      </div>
+      <div class="v-card">
+        <div class="v-card-top"><span class="v-card-ico ico-yellow">!</span><span class="v-card-label">Inadimplência</span></div>
+        <div class="v-card-value" id="card-inadim">—</div>
+        <a class="v-card-link" href="#" id="link-hist" title="Histórico de vendas (aba original)">&#9201; HIST. VENDAS</a>
+      </div>
+    </div>
+
+    <div id="v-corpo">
+      <!-- E1: botões de visão + velocímetros -->
+      <div id="v-e1">
+        <div class="v-view-btns" id="v-views"></div>
+        <div class="v-gauges">
+          <div class="v-gauge-box">
+            <div class="v-gauge-title">% LUCRO</div>
+            <div id="g-gauge-lucro"></div>
+            <div class="v-gauge-nums"><span>0,00%</span><span class="v-val" id="g-lucro-val">—</span><span id="g-lucro-max">37,50%</span></div>
+          </div>
+          <div class="v-gauge-box">
+            <div class="v-gauge-title">% DESCONTO</div>
+            <div id="g-gauge-desconto"></div>
+            <div class="v-gauge-nums"><span>0,00%</span><span class="v-val" id="g-desconto-val">—</span><span id="g-desconto-max">17,50%</span></div>
+          </div>
+          <div class="v-gauge-box">
+            <div class="v-gauge-title">% INADIMPLÊNCIA</div>
+            <div id="g-gauge-inadim"></div>
+            <div class="v-gauge-nums"><span>0,00%</span><span class="v-val" id="g-inadim-val">—</span><span id="g-inadim-max">1,00%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- E2: gráfico central + gráficos de período -->
+      <div id="v-e2">
+        <div class="v-chart-box" id="g-central">
+          <div class="v-chart-title" id="g-central-title">RESUMO POR EMPRESA</div>
+          <div id="chart-central" style="height:300px"></div>
+        </div>
+        <div class="v-period-row">
+          <div class="v-period-box">
+            <div class="v-chart-title">LUCRO POR PERÍODO</div>
+            <div id="chart-lucro" style="height:110px"></div>
+          </div>
+          <div class="v-period-box">
+            <div class="v-chart-title">DESCONTO POR PERÍODO</div>
+            <div id="chart-desconto" style="height:110px"></div>
+          </div>
+          <div class="v-period-box">
+            <div class="v-chart-title">INADIMPLÊNCIA POR PERÍODO</div>
+            <div id="chart-inadim" style="height:110px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div>MetaFoco · Dashboard GERENCIAL (aba VENDAS) — réplica 1:1 do Power BI</div>
+  <div class="muted" id="v-footer-data">—</div>
+</footer>
+
+<script src="/js/auth.js"></script>
+<script src="/js/glossario.js"></script>
+<script>
+let state = null;        // payload de /api/vendas/resumo
+let charts = {};
+let viewAtiva = 'resumo_empresa';
+
+const VIEWS = [
+  { key: 'resumo_empresa', label: 'RESUMO P/ EMPRESA', title: 'RESUMO POR EMPRESA' },
+  { key: 'evolucao',       label: 'EVOL. VENDAS',       title: 'EVOLUÇÃO DE VENDAS' },
+  { key: 'clientes',       label: 'CLIENTES',           title: 'CLIENTES' },
+  { key: 'vendedores',     label: 'VENDEDORES',         title: 'VENDEDORES' },
+  { key: 'grupo',          label: 'GRUPO',              title: 'GRUPO' },
+  { key: 'subgrupo',       label: 'SUBGRUPO',           title: 'SUBGRUPO' },
+];
+
+const NAV = [
+  { label: 'Vendas por Loja',   target: 'vendas',  ico: '📈' },
+  { label: 'Vendas por Vendedor', target: null,    ico: '🎯' },
+  { label: 'Metas',             target: null,      ico: '🎯' },
+  { label: 'Inadimplência',     target: null,      ico: '⚠️' },
+  { label: 'Estoque',           target: null,      ico: '📦' },
+  { label: 'Projeção',          target: null,      ico: '📊' },
+];
+
+function fmtCT(v) {
+  if (v == null || isNaN(v)) return '—';
+  return Math.round(v).toLocaleString('pt-BR');
+}
+function fmtPctBR(v) {
+  if (v == null || isNaN(v)) return '—';
+  return (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+}
+
+function renderNav() {
+  document.getElementById('v-nav').innerHTML = NAV.map(n => `
+    <button class="v-nav-btn ${n.label === 'Vendas por Loja' ? 'active' : ''}"
+            ${n.target ? '' : 'data-nomigrada="1"'} title="${n.target ? '' : 'Aba ainda não migrada (somente VENDAS foi mapeada)'}">
+      <span class="v-ico">${n.ico}</span>${n.label}
+    </button>`).join('');
+  document.querySelectorAll('[data-nomigrada]').forEach(b => b.addEventListener('click', (e) => {
+    e.preventDefault(); toast('Aba ainda não migrada — só VENDAS foi mapeada na gravação.', 'info');
+  }));
+}
+
+function renderViews() {
+  document.getElementById('v-views').innerHTML = VIEWS.map(v => `
+    <button class="v-view-btn ${v.key === viewAtiva ? 'active' : ''}" data-view="${v.key}">${v.label}</button>
+  `).join('');
+  document.querySelectorAll('.v-view-btn').forEach(b =>
+    b.addEventListener('click', () => {
+      viewAtiva = b.getAttribute('data-view');
+      renderViews();
+      renderCentral();
+    }));
+}
+
+function fillSelect(id, values, fmt = v => v) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>' +
+    values.map(v => `<option value="${v}">${fmt(v)}</option>`).join('');
+  sel.value = cur;
+}
+
+async function loadFiltros() {
+  try {
+    const d = await apiRequest('/vendas/filtros');
+    fillSelect('f-ano', d.anos || [], v => String(v));
+    fillSelect('f-mes', d.meses || [], v => new Date(2000, v - 1, 1).toLocaleDateString('pt-BR', { month: 'short' }));
+    fillSelect('f-empresa', d.empresas || []);
+    fillSelect('f-vendedor', d.vendedores_1_2 || []);
+    fillSelect('f-status', d.status_inadim || []);
+  } catch (e) { console.error('filtros:', e); }
+}
+
+function params() {
+  const p = new URLSearchParams();
+  const ano = document.getElementById('f-ano').value;
+  const mes = document.getElementById('f-mes').value;
+  const emp = document.getElementById('f-empresa').value;
+  const ven = document.getElementById('f-vendedor').value;
+  const stt = document.getElementById('f-status').value;
+  const fre = document.getElementById('f-frete').value;
+  if (ano) p.append('ano', ano);
+  if (mes) p.append('mes', mes);
+  if (emp) p.append('empresa', emp);
+  if (ven) p.append('vendedor', ven);
+  if (stt) p.append('status', stt);
+  if (fre) p.append('frete', fre);
+  return p.toString();
+}
+
+async function loadResumo() {
+  const btn = document.getElementById('btn-refresh');
+  try {
+    if (!btn.classList.contains('spinning')) btn.classList.add('spinning');
+    state = await apiRequest('/vendas/resumo?' + params());
+    renderCards();
+    renderCentral();
+    renderGauges();
+    renderPeriodo();
+    renderFooter();
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao carregar vendas: ' + e.message, 'error');
+  } finally {
+    setTimeout(() => btn.classList.remove('spinning'), 350);
+  }
+}
+
+function renderCards() {
+  const c = state.cards;
+  document.getElementById('card-faturamento').textContent = fmtCT(c.faturamento_card);
+  document.getElementById('card-desconto').textContent = fmtCT(c.desconto);
+  document.getElementById('card-lucro').textContent = fmtCT(c.lucro);
+  document.getElementById('card-vendas').textContent = fmtCT(c.qtd_vendas);
+  document.getElementById('card-ticket').textContent = fmtCT(c.ticket);
+  document.getElementById('card-inadim').textContent = fmtCT(c.inadimplencia);
+}
+
+function chartTextColor() { return '#374151'; }
+function chartGridColor() { return '#e5e7eb'; }
+
+function barsData(rows, top = 0) {
+  let list = (rows || []).slice().sort((a, b) => b.faturamento - a.faturamento);
+  if (top > 0 && list.length > top) list = list.slice(0, top);
+  return list;
+}
+
+function renderCentral() {
+  const title = (VIEWS.find(v => v.key === viewAtiva) || VIEWS[0]).title;
+  document.getElementById('g-central-title').textContent = title;
+  const el = document.getElementById('chart-central');
+
+  if (viewAtiva === 'evolucao') {
+    const evo = (state.evolucao || []).filter(p => p.faturamento != null);
+    const cfg = {
+      chart: { type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent', zoom: { enabled: false } },
+      series: [
+        { name: 'Faturamento', type: 'bar', data: evo.map(p => Math.round(p.faturamento)) },
+        { name: 'Metas', type: 'line', data: evo.map(p => Math.round(p.metas || 0)) },
+        { name: 'Inadimplência', type: 'line', data: evo.map(p => Math.round(p.inadimplencia || 0)) },
+      ],
+      colors: ['#15803d', '#f97316', '#eab308'],
+      stroke: { width: [0, 2, 2], curve: 'smooth' },
+      plotOptions: { bar: { columnWidth: '55%', borderRadius: 2 } },
+      xaxis: { categories: evo.map(p => p.mes), labels: { style: { colors: chartTextColor() } } },
+      yaxis: { labels: { style: { colors: chartTextColor() }, formatter: (v) => compactBR(v) } },
+      grid: { borderColor: chartGridColor() },
+      dataLabels: { enabled: false },
+      tooltip: { theme: 'light', y: { formatter: (v) => fmtCT(v) } },
+      legend: { labels: { colors: chartTextColor() } },
+    };
+    renderOrUpdate('chart-central', cfg, 'central');
+    return;
+  }
+
+  const rows = barsData(viewAtiva === 'resumo_empresa' ? state.resumo_empresa
+                        : state[viewAtiva] || [], viewAtiva === 'resumo_empresa' ? 0 : 20);
+  const nomes = rows.map(r => r.nome);
+  const vals = rows.map(r => Math.round(r.faturamento));
+  const cfg = {
+    chart: { type: 'bar', height: 300, toolbar: { show: false }, background: 'transparent' },
+    plotOptions: { bar: { horizontal: true, barHeight: '62%' } },
+    series: [{ name: 'Faturamento', data: vals }],
+    colors: ['#6aa84f'],
+    xaxis: { labels: { style: { colors: chartTextColor() }, formatter: (v) => compactBR(v) }, axisBorder: { color: '#d1d5db' } },
+    yaxis: { labels: { style: { colors: chartTextColor() }, formatter: (v) => v } },
+    grid: { borderColor: chartGridColor() },
+    dataLabels: { enabled: true, formatter: (v) => compactBR(v), style: { colors: ['#fff'], fontSize: '10px', fontWeight: 700 } },
+    tooltip: { theme: 'light', y: { formatter: (v) => fmtCT(v) } },
+    legend: { labels: { colors: chartTextColor() } },
+  };
+  renderOrUpdate('chart-central', cfg, 'central');
+}
+
+// ---- Velocímetros (semicírculo: valor / meta) ----
+function renderGauges() {
+  const c = state.cards;
+  const defs = {
+    'gauge-lucro':     { meta: c.meta_lucro,        val: c.pct_lucro,        valEl: 'g-lucro-val',   maxEl: 'g-lucro-max' },
+    'gauge-desconto':  { meta: c.meta_desconto,     val: c.pct_desconto,     valEl: 'g-desconto-val', maxEl: 'g-desconto-max' },
+    'gauge-inadim':    { meta: c.meta_inadimplencia, val: c.pct_inadimplencia, valEl: 'g-inadim-val', maxEl: 'g-inadim-max' },
+  };
+  Object.entries(defs).forEach(([elId, d]) => {
+    document.getElementById(d.valEl).textContent = fmtPctBR(d.val);
+    document.getElementById(d.maxEl).textContent = fmtPctBR(d.meta);
+    const pctArc = d.meta ? Math.min(100, (d.val / d.meta) * 100) : 0;
+    const cfg = {
+      chart: { type: 'radialBar', height: 150, toolbar: { show: false }, background: 'transparent' },
+      series: [Number(pctArc.toFixed(2))],
+      colors: ['#15803d'],
+      plotOptions: {
+        radialBar: {
+          startAngle: -90, endAngle: 90,
+          hollow: { size: '58%' },
+          dataLabels: {
+            name: { show: false },
+            value: { offsetY: -4, fontSize: '19px', fontWeight: 800, color: '#1f2937', formatter: (v) => fmtPctBR(d.val) },
+          },
+        },
+      },
+      stroke: { lineCap: 'round' },
+      tooltip: { enabled: false },
+    };
+    renderOrUpdate(elId, cfg, elId);
+  });
+}
+
+// ---- Gráficos de período (linhas) ----
+function renderPeriodo() {
+  const mes = (state.periodo || []).map(p => p.mes);
+  const series = [
+    { el: 'chart-lucro',     col: 'pct_lucro',     color: '#15803d' },
+    { el: 'chart-desconto',  col: 'pct_desconto',  color: '#f97316' },
+    { el: 'chart-inadim',    col: 'pct_inadimplencia', color: '#eab308' },
+  ];
+  series.forEach(({ el, col, color }) => {
+    const cfg = {
+      chart: { type: 'line', height: 110, toolbar: { show: false }, background: 'transparent', sparkline: { enabled: false } },
+      series: [{ name: col, data: (state.periodo || []).map(p => parseFloat((p[col] * 100).toFixed(2))) }],
+      colors: [color],
+      stroke: { width: 2, curve: 'smooth' },
+      markers: { size: 3 },
+      xaxis: { categories: mes, labels: { style: { colors: chartTextColor(), fontSize: '10px' } } },
+      yaxis: { labels: { style: { colors: chartTextColor(), fontSize: '10px' }, formatter: (v) => v.toFixed(2) + '%' } },
+      grid: { borderColor: chartGridColor() },
+      dataLabels: { enabled: false },
+      tooltip: { theme: 'light', y: { formatter: (v) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%' } },
+      legend: { show: false },
+    };
+    renderOrUpdate(el, cfg, el);
+  });
+}
+
+function renderFooter() {
+  const c = state.cards;
+  const f = document.getElementById('v-footer-data');
+  f.textContent = `Faturamento ${fmtCT(c.faturamento_card)} (card) · barras ${fmtCT(c.faturamento)} — diferença de ${fmtCT(c.faturamento - c.faturamento_card)} = frete (replicado 1:1 do original)`;
+}
+
+function renderOrUpdate(elId, cfg, key) {
+  if (charts[key]) { charts[key].updateOptions(cfg, false, true); return; }
+  charts[key] = new ApexCharts(document.querySelector('#' + elId), cfg);
+  charts[key].render();
+}
+
+function compactBR(v) {
+  if (v == null || isNaN(v)) return '';
+  const abs = Math.abs(v);
+  if (abs >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return (v / 1e3).toFixed(0) + 'K';
+  return String(Math.round(v));
+}
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', () => {
+  if (!getToken()) { window.location.href = '/login'; return; }
+  renderTopbar('vendas');
+  renderNav();
+  renderViews();
+  loadFiltros();
+  loadResumo();
+
+  document.getElementById('btn-refresh').addEventListener('click', loadResumo);
+  document.getElementById('link-hist').addEventListener('click', (e) => {
+    e.preventDefault();
+    toast('Aba HIST. VENDAS ainda não migrada.', 'info');
+  });
+
+  ['f-ano','f-mes','f-empresa','f-vendedor','f-status','f-frete'].forEach(id => {
+    document.getElementById(id).addEventListener('change', loadResumo);
+  });
+});
+</script>
+
+</body>
+</html>

@@ -7,6 +7,8 @@
 *.rar
 *.zip
 *.7z
+# Manuais do cliente (GMAD)
+Manual_Migracao_*.pdf
 
 # ===== Segredos / ambiente =====
 .env
